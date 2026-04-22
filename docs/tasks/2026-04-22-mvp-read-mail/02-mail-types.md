@@ -18,7 +18,7 @@
 
 ## Steps
 
-- [ ] **Step 1: 寫失敗測試**
+- [x] **Step 1: 寫失敗測試**
 
 `internal/mail/mail_test.go`：
 
@@ -67,7 +67,7 @@ func TestMailFieldsAssignable(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: 跑測試確認失敗**
+- [x] **Step 2: 跑測試確認失敗**
 
 ```bash
 go test ./internal/mail/...
@@ -75,7 +75,7 @@ go test ./internal/mail/...
 
 預期：編譯錯誤（`Mail` / `Attachment` 未定義）。
 
-- [ ] **Step 3: 實作 `internal/mail/mail.go`**
+- [x] **Step 3: 實作 `internal/mail/mail.go`**
 
 ```go
 // Package mail defines the shared data types that flow between
@@ -119,7 +119,7 @@ type Attachment struct {
 }
 ```
 
-- [ ] **Step 4: 跑測試確認通過**
+- [x] **Step 4: 跑測試確認通過**
 
 ```bash
 go test ./internal/mail/...
@@ -127,7 +127,7 @@ go test ./internal/mail/...
 
 預期：`ok  github.com/austinjan/mail-agent/internal/mail`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add internal/mail

@@ -13,13 +13,13 @@
 
 ## Steps
 
-- [ ] **Step 1: 加入 yaml 依賴**
+- [x] **Step 1: 加入 yaml 依賴**
 
 ```bash
 go get gopkg.in/yaml.v3
 ```
 
-- [ ] **Step 2: 準備測試 fixture**
+- [x] **Step 2: 準備測試 fixture**
 
 `internal/config/testdata/valid.yaml`：
 
@@ -38,7 +38,7 @@ attachments:
   dir: ./attachments
 ```
 
-- [ ] **Step 3: 寫失敗測試**
+- [x] **Step 3: 寫失敗測試**
 
 `internal/config/config_test.go`：
 
@@ -86,7 +86,7 @@ func TestLoadMissing(t *testing.T) {
 }
 ```
 
-- [ ] **Step 4: 跑測試確認失敗**
+- [x] **Step 4: 跑測試確認失敗**
 
 ```bash
 go test ./internal/config/...
@@ -94,7 +94,7 @@ go test ./internal/config/...
 
 預期：編譯錯誤（`Load` / `Config` 未定義）。
 
-- [ ] **Step 5: 實作 `internal/config/config.go`**
+- [x] **Step 5: 實作 `internal/config/config.go`**
 
 ```go
 // Package config loads mail-agent's YAML config file.
@@ -147,7 +147,7 @@ func Load(path string) (*Config, error) {
 }
 ```
 
-- [ ] **Step 6: 跑測試確認通過**
+- [x] **Step 6: 跑測試確認通過**
 
 ```bash
 go test ./internal/config/...
@@ -155,7 +155,7 @@ go test ./internal/config/...
 
 預期：PASS。
 
-- [ ] **Step 7: 產出 `config.example.yaml`**
+- [x] **Step 7: 產出 `config.example.yaml`**
 
 ```yaml
 # config.example.yaml — copy to config.yaml and fill in your secrets
@@ -173,7 +173,7 @@ attachments:
   dir: ./attachments
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add go.mod go.sum internal/config config.example.yaml
