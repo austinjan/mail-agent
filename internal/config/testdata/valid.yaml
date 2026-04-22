@@ -1,0 +1,12 @@
+imap:
+  host: imap.gmail.com
+  port: 993
+  user: austin.jan@gmail.com
+  password: testpass
+  folder: INBOX
+defaults:
+  since: 24h
+database:
+  path: ./mail-agent.db
+attachments:
+  dir: ./attachments
