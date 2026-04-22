@@ -1,1 +1,18 @@
 .claude/settings.local.json
+
+# Build output
+/mail-agent
+/bin/
+
+# Local config（含 IMAP password）
+/config.yaml
+
+# SQLite DB
+*.db
+*.db-journal
+
+# Attachments
+/attachments/
+
+# macOS
+.DS_Store
