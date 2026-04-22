@@ -110,6 +110,33 @@ dispatch v1 與 read MVP 一致：
 - 某筆摘要生成失敗 -> work item 標 `failed`，log 後繼續
 - 沒有可 dispatch 的信 -> log summary，正常結束
 
+### D5. v1 的 LLM provider 與 model
+
+v1 的摘要能力使用 Gemini。
+
+預設模型：
+
+- `gemini-3.1-flash-lite-preview`
+
+建議 fallback：
+
+- `gemini-2.5-flash`
+
+原因：
+
+- `gemini-3.1-flash-lite-preview` 成本低、吞吐高，適合高頻的信件摘要工作
+- v1 先做 `summarize_mail`，任務相對單純，適合先用 flash-lite 類模型
+- 由於這是 preview model，保留一個較穩定的 fallback 比較安全
+
+建議 config：
+
+```yaml
+llm:
+  provider: gemini
+  model: gemini-3.1-flash-lite-preview
+  fallback_model: gemini-2.5-flash
+```
+
 ## v1 資料模型
 
 v1 只使用：
@@ -252,6 +279,51 @@ v1 的 retry policy 採最簡單版本：
 ```
 
 v1 不定義更複雜的 schema。
+
+建議摘要內容至少包含：
+
+- 這封信的主旨重點
+- 寄件者
+- 是否需要後續動作
+- 重要時間、附件或要求
+
+例：
+
+```json
+{
+  "summary": "Alice 寄來專案進度更新，表示 API schema 已完成，請在本週五前確認是否進入測試，並附上一份規格文件。"
+}
+```
+
+## LLM 呼叫策略
+
+v1 建議由應用程式組出固定 prompt，將以下欄位餵給模型：
+
+- `subject`
+- `from_addr`
+- `to_addrs`
+- `cc_addrs`
+- `received_at`
+- `body_text`
+- 附件檔名列表
+
+若 `body_text` 為空，可退回使用其他可用文字內容。
+
+v1 建議要求模型輸出 structured JSON，對應：
+
+```json
+{
+  "summary": "string"
+}
+```
+
+若主模型失敗，可採以下策略：
+
+1. 先記錄錯誤
+2. 依設定改用 `fallback_model`
+3. fallback 仍失敗則將 work item 標記為 `failed`
+
+v1 不要求自動多次重試不同 prompt，只需單次 fallback 即可。
 
 ## 驗收條件
 
