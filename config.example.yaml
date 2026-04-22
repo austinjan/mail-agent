@@ -1,0 +1,13 @@
+# config.example.yaml — copy to config.yaml and fill in your secrets
+imap:
+  host: imap.gmail.com
+  port: 993
+  user: your-email@gmail.com
+  password: xxxxxxxxxxxxxxxx   # Gmail App Password, not your login password
+  folder: INBOX
+defaults:
+  since: 24h
+database:
+  path: ./mail-agent.db
+attachments:
+  dir: ./attachments
