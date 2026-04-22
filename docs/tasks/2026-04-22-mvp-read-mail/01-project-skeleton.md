@@ -17,7 +17,7 @@
 
 ## Steps
 
-- [ ] **Step 1: 初始化 Go module**
+- [x] **Step 1: 初始化 Go module**
 
 ```bash
 cd /Users/austinjan/code/mail-agent
@@ -26,7 +26,7 @@ go mod init github.com/austinjan/mail-agent
 
 預期：產生 `go.mod`，內容包含 `module github.com/austinjan/mail-agent` 與 `go 1.22`（或當前 Go 版本）。
 
-- [ ] **Step 2: 擴充 `.gitignore`**
+- [x] **Step 2: 擴充 `.gitignore`**
 
 把下列內容附加到 `.gitignore`：
 
@@ -49,7 +49,7 @@ go mod init github.com/austinjan/mail-agent
 .DS_Store
 ```
 
-- [ ] **Step 3: 建立 package 目錄與空 `main.go`**
+- [x] **Step 3: 建立 package 目錄與空 `main.go`**
 
 ```bash
 mkdir -p cmd/mail-agent internal/core internal/source internal/store internal/mail internal/config
@@ -64,7 +64,7 @@ package main
 func main() {}
 ```
 
-- [ ] **Step 4: 確認 build 可以過**
+- [x] **Step 4: 確認 build 可以過**
 
 ```bash
 go build ./...
@@ -72,7 +72,7 @@ go build ./...
 
 預期：無輸出、exit 0。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add go.mod cmd internal .gitignore
