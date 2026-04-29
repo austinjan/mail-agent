@@ -15,27 +15,28 @@ All plans, implementation details, and progress tracking live under `/docs`. Cre
 - Language: Go 1.22+
 - Module: `github.com/austinjan/mail-agent`
 - IMAP client: `github.com/emersion/go-imap/v2`
-- SQLite driver: `modernc.org/sqlite`（純 Go，無 CGO）
+- SQLite driver: `modernc.org/sqlite` (pure Go, no CGO)
 - YAML: `gopkg.in/yaml.v3`
 - Logging: stdlib `log/slog`
 - Testing: stdlib `testing`
 
 ## Project structure
 
-```
-cmd/mail-agent/        # CLI entrypoint（Task 11，待實作）
+```text
+cmd/mail-agent/        # CLI entrypoint (Task 11, pending)
 internal/
-  config/              # Config 載入（Task 03，完成）
-  mail/                # 共用資料型別（Task 02，完成）
-  source/              # IMAP 抓信 + MIME 解析（Tasks 07–09，完成）
-  store/               # SQLite 儲存（Tasks 04–06，待實作）
-  core/                # Pipeline（Task 10，待實作）
+  config/              # Config loading (Task 03, completed)
+  mail/                # Shared data types (Task 02, completed)
+  source/              # IMAP fetch + MIME parsing (Tasks 07-09, in progress on PR)
+  store/               # SQLite persistence (Tasks 04-06, completed)
+  core/                # Pipeline (Task 10, pending)
 docs/
-  plans/               # 設計文件
-  tasks/               # 實作 task 清單與進度
+  plans/               # Design documents
+  tasks/               # Task breakdown and progress
 ```
 
 ## Status
 
-MVP Read Mail 進行中。Tasks 01–03、07–09 已完成；Tasks 04–06、10–12 待實作。
-詳細進度見 `docs/tasks/2026-04-22-mvp-read-mail/README.md`。
+MVP Read Mail is in progress. Tasks 01-06 are completed. Tasks 07-09 are under review in an open PR. Tasks 10-12 are still pending.
+
+See `docs/tasks/2026-04-22-mvp-read-mail/README.md` for the detailed task checklist.

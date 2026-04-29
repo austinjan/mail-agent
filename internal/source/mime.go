@@ -66,7 +66,8 @@ func parseRFC822(raw []byte) (mail.Mail, error) {
 		if err != nil {
 			return mail.Mail{}, fmt.Errorf("read body: %w", err)
 		}
-		assignBodyPart(&m, mediaType, body, "", "")
+		decoded := decodePart(msg.Header.Get("Content-Transfer-Encoding"), body)
+		assignBodyPart(&m, mediaType, decoded, "", ct)
 	}
 	return m, nil
 }
