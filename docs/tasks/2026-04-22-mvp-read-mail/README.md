@@ -53,9 +53,9 @@
 - [x] Task 01 — PR #5
 - [x] Task 02 — PR #5
 - [x] Task 03 — PR #5
-- [ ] Task 04
-- [ ] Task 05
-- [ ] Task 06
+- [x] Task 04
+- [x] Task 05
+- [x] Task 06
 - [ ] Task 07
 - [ ] Task 08
 - [ ] Task 09
