@@ -1,0 +1,19 @@
+From: Alice <alice@example.com>
+To: Bob <bob@example.com>
+Subject: Report
+Message-ID: <att-001@example.com>
+Date: Wed, 22 Apr 2026 11:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="XYZ"
+
+--XYZ
+Content-Type: text/plain; charset=utf-8
+
+See attached.
+--XYZ
+Content-Type: application/octet-stream; name="note.txt"
+Content-Disposition: attachment; filename="note.txt"
+Content-Transfer-Encoding: base64
+
+aGVsbG8gYXR0YWNobWVudA==
+--XYZ--
