@@ -1,30 +1,30 @@
-# Task 04 — Store 介面 + SQLite schema
+# Task 04: Store 介面與 SQLite Schema
 
-**目標**：定義 `Store` 介面、建立 SQLite 檔案、套 schema。此 task 還不寫入實際的 mail 資料；只確保 schema 正確、`SqliteStore` 可以 open / close。
+**目標**：定義 `Store` 介面，建立 SQLite schema，並完成 `SqliteStore` 的開啟、關閉與 schema 初始化。這個 task 先不處理 mail 寫入與 attachment 寫入邏輯。
 
-**依賴**：Task 02（需要 `mail.Mail`）。
+**依賴**：Task 02 已完成，已有 `mail.Mail` 型別可用。
 
 ## 產出檔案
 
-- Create: `internal/store/store.go`（介面）
+- Create: `internal/store/store.go`
 - Create: `internal/store/schema.sql`
-- Create: `internal/store/sqlite.go`（`Open`、`Close`、套 schema）
+- Create: `internal/store/sqlite.go`
 - Create: `internal/store/sqlite_test.go`
 
 ## Steps
 
-- [ ] **Step 1: 加入 SQLite 依賴**
+- [x] **Step 1: 加入 SQLite 依賴**
 
 ```bash
 go get modernc.org/sqlite
 ```
 
-- [ ] **Step 2: 定義介面 `internal/store/store.go`**
+- [x] **Step 2: 定義介面 `internal/store/store.go`**
 
 ```go
 // Package store persists fetched mails and attachments.
 // The Store interface decouples the core pipeline from any
-// particular backend — MVP uses SqliteStore.
+// particular backend; MVP uses SqliteStore.
 package store
 
 import "github.com/austinjan/mail-agent/internal/mail"
@@ -38,7 +38,7 @@ type Store interface {
 }
 ```
 
-- [ ] **Step 3: 寫 schema `internal/store/schema.sql`**
+- [x] **Step 3: 建立 schema `internal/store/schema.sql`**
 
 ```sql
 CREATE TABLE IF NOT EXISTS mails (
@@ -79,18 +79,11 @@ CREATE INDEX IF NOT EXISTS idx_attachments_mail_id ON attachments(mail_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_sha256 ON attachments(sha256);
 ```
 
-- [ ] **Step 4: 寫失敗測試**
+- [x] **Step 4: 先寫失敗測試**
 
-`internal/store/sqlite_test.go`：
+`internal/store/sqlite_test.go`
 
 ```go
-package store
-
-import (
-	"path/filepath"
-	"testing"
-)
-
 func TestOpenCreatesSchema(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "test.db")
@@ -102,12 +95,11 @@ func TestOpenCreatesSchema(t *testing.T) {
 	}
 	defer s.Close()
 
-	// Re-open should be idempotent (schema uses IF NOT EXISTS).
 	s2, err := OpenSQLite(dbPath, attDir)
 	if err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
-	s2.Close()
+	defer s2.Close()
 }
 
 func TestHasSeenEmpty(t *testing.T) {
@@ -136,15 +128,15 @@ func TestHasSeenEmpty(t *testing.T) {
 }
 ```
 
-- [ ] **Step 5: 跑測試確認失敗**
+- [x] **Step 5: 跑測試確認先失敗**
 
 ```bash
 go test ./internal/store/...
 ```
 
-預期：編譯錯誤（`OpenSQLite` 未定義）。
+預期：因為 `OpenSQLite` 尚未實作，測試會先失敗。
 
-- [ ] **Step 6: 實作 `internal/store/sqlite.go`**
+- [x] **Step 6: 實作 `internal/store/sqlite.go`**
 
 ```go
 package store
@@ -161,8 +153,6 @@ import (
 //go:embed schema.sql
 var schemaSQL string
 
-// SqliteStore is the MVP Store backed by a local SQLite file
-// and an on-disk attachments directory.
 type SqliteStore struct {
 	db            *sql.DB
 	attachmentDir string
@@ -177,7 +167,7 @@ func OpenSQLite(dbPath, attachmentDir string) (*SqliteStore, error) {
 		return nil, fmt.Errorf("open sqlite %q: %w", dbPath, err)
 	}
 	if _, err := db.Exec(schemaSQL); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("apply schema: %w", err)
 	}
 	return &SqliteStore{db: db, attachmentDir: attachmentDir}, nil
@@ -186,77 +176,33 @@ func OpenSQLite(dbPath, attachmentDir string) (*SqliteStore, error) {
 func (s *SqliteStore) Close() error {
 	return s.db.Close()
 }
-
-func (s *SqliteStore) HasSeen(uidValidity uint32, uid uint32, folder string) (bool, error) {
-	var one int
-	err := s.db.QueryRow(
-		`SELECT 1 FROM mails WHERE uid_validity = ? AND uid = ? AND folder = ? LIMIT 1`,
-		uidValidity, uid, folder,
-	).Scan(&one)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("HasSeen: %w", err)
-	}
-	return true, nil
-}
-
-func (s *SqliteStore) HasSeenByMessageID(messageID string) (bool, error) {
-	if messageID == "" {
-		return false, nil
-	}
-	var one int
-	err := s.db.QueryRow(
-		`SELECT 1 FROM mails WHERE message_id = ? LIMIT 1`,
-		messageID,
-	).Scan(&one)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("HasSeenByMessageID: %w", err)
-	}
-	return true, nil
-}
-
-// SaveMail / SaveAttachment are implemented in later tasks.
-func (s *SqliteStore) SaveMail(m mail.Mail) (int64, error) {
-	return 0, fmt.Errorf("SaveMail: not implemented")
-}
-
-func (s *SqliteStore) SaveAttachment(mailID int64, a mail.Attachment) error {
-	return fmt.Errorf("SaveAttachment: not implemented")
-}
 ```
 
-> **注意 import**：這個檔案 import `github.com/austinjan/mail-agent/internal/mail`。加在 import block 裡。
+- [x] **Step 7: 確認 `SqliteStore` 實作 `Store` 介面**
 
-- [ ] **Step 7: 確認 `SqliteStore` 實現 `Store` 介面**
-
-在 `sqlite.go` 末尾加 compile-time assertion：
+在 `sqlite.go` 中加入 compile-time assertion：
 
 ```go
 var _ Store = (*SqliteStore)(nil)
 ```
 
-- [ ] **Step 8: 跑測試確認通過**
+- [x] **Step 8: 跑測試確認通過**
 
 ```bash
 go test ./internal/store/...
 ```
 
-預期：PASS。`TestOpenCreatesSchema` 與 `TestHasSeenEmpty` 都要過。
+預期：`TestOpenCreatesSchema` 與 `TestHasSeenEmpty` 通過。
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add go.mod go.sum internal/store
-git commit -m "建立 Store 介面與 SQLite schema"
+git commit -m "Implement store interface and SQLite schema"
 ```
 
 ## 驗收
 
-- `go test ./internal/store/...` 全過。
-- 重複 open 同一個 DB 檔不會錯誤（`IF NOT EXISTS`）。
-- `SqliteStore` 在 compile time 滿足 `Store` 介面。
+- `go test ./internal/store/...` 通過
+- 重複開啟同一個 DB 不會因 schema 初始化失敗
+- `SqliteStore` 在 compile time 滿足 `Store` 介面
