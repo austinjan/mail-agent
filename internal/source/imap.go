@@ -82,6 +82,9 @@ func (s *IMAPSource) Fetch(folder string, since time.Time) ([]mail.Mail, uint32,
 		if err != nil {
 			continue
 		}
+		if !includeMailSince(parsed, since) {
+			continue
+		}
 		parsed.UIDValidity = uidValidity
 		parsed.UID = uint32(fm.UID)
 		parsed.Folder = folder
@@ -97,6 +100,13 @@ func flagsToStrings(flags []imap.Flag) []string {
 		out[i] = string(f)
 	}
 	return out
+}
+
+func includeMailSince(m mail.Mail, since time.Time) bool {
+	if m.ReceivedAt.IsZero() {
+		return true
+	}
+	return !m.ReceivedAt.Before(since)
 }
 
 func (s *IMAPSource) dial() (*imapclient.Client, error) {

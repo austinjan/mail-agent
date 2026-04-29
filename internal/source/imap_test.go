@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/austinjan/mail-agent/internal/mail"
 )
 
 // Integration test — needs a real IMAP account.
@@ -38,5 +40,45 @@ func TestIMAPSourceFetchLive(t *testing.T) {
 		if m.ReceivedAt.IsZero() {
 			t.Error("expected non-zero ReceivedAt on first mail")
 		}
+	}
+}
+
+func TestIncludeMailSince(t *testing.T) {
+	since := time.Date(2026, 4, 22, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name string
+		m    mail.Mail
+		want bool
+	}{
+		{
+			name: "after cutoff",
+			m:    mail.Mail{ReceivedAt: since.Add(5 * time.Minute)},
+			want: true,
+		},
+		{
+			name: "exactly at cutoff",
+			m:    mail.Mail{ReceivedAt: since},
+			want: true,
+		},
+		{
+			name: "before cutoff on same day",
+			m:    mail.Mail{ReceivedAt: since.Add(-5 * time.Minute)},
+			want: false,
+		},
+		{
+			name: "unknown received time kept",
+			m:    mail.Mail{},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := includeMailSince(tt.m, since)
+			if got != tt.want {
+				t.Fatalf("includeMailSince() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
