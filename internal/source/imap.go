@@ -58,9 +58,45 @@ func (s *IMAPSource) Fetch(folder string, since time.Time) ([]mail.Mail, uint32,
 		return nil, uidValidity, nil
 	}
 
-	// Full fetch is implemented in Task 09. Return empty slice for now.
-	_ = uids
-	return nil, uidValidity, nil
+	fetchOpts := &imap.FetchOptions{
+		Flags: true,
+		UID:   true,
+		BodySection: []*imap.FetchItemBodySection{
+			{Peek: true},
+		},
+	}
+	fetchCmd := c.Fetch(imap.UIDSetNum(uids...), fetchOpts)
+	defer fetchCmd.Close()
+
+	msgs, err := fetchCmd.Collect()
+	if err != nil {
+		return nil, uidValidity, fmt.Errorf("imap fetch: %w", err)
+	}
+
+	mails := make([]mail.Mail, 0, len(msgs))
+	for _, fm := range msgs {
+		if len(fm.BodySection) == 0 {
+			continue
+		}
+		parsed, err := parseRFC822(fm.BodySection[0].Bytes)
+		if err != nil {
+			continue
+		}
+		parsed.UIDValidity = uidValidity
+		parsed.UID = uint32(fm.UID)
+		parsed.Folder = folder
+		parsed.Flags = flagsToStrings(fm.Flags)
+		mails = append(mails, parsed)
+	}
+	return mails, uidValidity, nil
+}
+
+func flagsToStrings(flags []imap.Flag) []string {
+	out := make([]string, len(flags))
+	for i, f := range flags {
+		out[i] = string(f)
+	}
+	return out
 }
 
 func (s *IMAPSource) dial() (*imapclient.Client, error) {

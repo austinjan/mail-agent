@@ -23,11 +23,20 @@ func TestIMAPSourceFetchLive(t *testing.T) {
 		t.Fatal("MAIL_AGENT_IMAP_HOST / USER / PASS must be set")
 	}
 	src := NewIMAPSource(cfg)
-	_, uidValidity, err := src.Fetch("INBOX", time.Now().Add(-24*time.Hour))
+	mails, uidValidity, err := src.Fetch("INBOX", time.Now().Add(-24*time.Hour))
 	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
 	if uidValidity == 0 {
 		t.Error("expected non-zero UIDVALIDITY")
+	}
+	if len(mails) > 0 {
+		m := mails[0]
+		if m.Subject == "" {
+			t.Error("expected non-empty Subject on first mail")
+		}
+		if m.ReceivedAt.IsZero() {
+			t.Error("expected non-zero ReceivedAt on first mail")
+		}
 	}
 }
