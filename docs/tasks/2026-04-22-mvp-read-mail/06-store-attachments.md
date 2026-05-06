@@ -5,6 +5,7 @@
 **依賴**：Task 05 已完成。
 
 **Last commit message**：`更新 T04–T06 進度打勾`
+<!-- GitHub last-commit batch: T04-T06 -->
 
 ## 產出檔案
 

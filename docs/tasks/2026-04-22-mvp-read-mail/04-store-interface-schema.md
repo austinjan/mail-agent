@@ -5,6 +5,7 @@
 **依賴**：Task 02 已完成，已有 `mail.Mail` 型別可用。
 
 **Last commit message**：`更新 T04–T06 進度打勾`
+<!-- GitHub last-commit batch: T04-T06 -->
 
 ## 產出檔案
 
