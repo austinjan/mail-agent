@@ -94,13 +94,13 @@ sqlite3 ./mail-agent.db \
 對每列，確認實體檔案存在：
 
 ```bash
-# 拿一筆的 file_path 做檢查，例如 b9/b94d27b9...
-ls -la ./attachments/<前兩個字元>/<sha256>
+# 拿一筆的 file_path 做檢查，例如 b9/b94d27b9..._invoice.pdf
+ls -la ./attachments/<前兩個字元>/<sha256>_<filename.ext>
 # 驗證 sha256
-shasum -a 256 ./attachments/<prefix>/<sha>
+shasum -a 256 ./attachments/<prefix>/<sha>_<filename.ext>
 ```
 
-`shasum -a 256` 算出來的值要等於 `file_path` 裡的 sha256。
+`shasum -a 256` 算出來的值要等於 `attachments.sha256`，且實體檔案應保留原本副檔名。
 
 ## 結果記錄表
 

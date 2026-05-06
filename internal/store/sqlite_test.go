@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -158,7 +159,8 @@ func TestSaveAttachmentWritesFile(t *testing.T) {
 	}
 
 	wantSha := "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
-	wantPath := filepath.Join(attDir, "b9", wantSha)
+	wantStoredName := wantSha + "_greeting.txt"
+	wantPath := filepath.Join(attDir, "b9", wantStoredName)
 	got, err := os.ReadFile(wantPath)
 	if err != nil {
 		t.Fatalf("read stored file %q: %v", wantPath, err)
@@ -182,8 +184,53 @@ func TestSaveAttachmentWritesFile(t *testing.T) {
 	if size != int64(len(content)) {
 		t.Errorf("size_bytes: got %d want %d", size, len(content))
 	}
-	if relPath != "b9/"+wantSha {
-		t.Errorf("file_path: got %q want %q", relPath, "b9/"+wantSha)
+	if relPath != "b9/"+wantStoredName {
+		t.Errorf("file_path: got %q want %q", relPath, "b9/"+wantStoredName)
+	}
+}
+
+func TestSaveAttachmentSanitizesFilename(t *testing.T) {
+	dir := t.TempDir()
+	attDir := filepath.Join(dir, "attachments")
+	s, err := OpenSQLite(filepath.Join(dir, "test.db"), attDir)
+	if err != nil {
+		t.Fatalf("OpenSQLite: %v", err)
+	}
+	defer s.Close()
+
+	mailID, err := s.SaveMail(mail.Mail{
+		UIDValidity: 1,
+		UID:         1,
+		Folder:      "INBOX",
+		ReceivedAt:  time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatalf("SaveMail: %v", err)
+	}
+
+	content := []byte("report")
+	a := mail.Attachment{
+		Filename:    `..\..\quarter:1?.pdf`,
+		ContentType: "application/pdf",
+		Content:     content,
+	}
+	if err := s.SaveAttachment(mailID, a); err != nil {
+		t.Fatalf("SaveAttachment: %v", err)
+	}
+
+	var relPath string
+	if err := s.db.QueryRow(`SELECT file_path FROM attachments WHERE mail_id = ?`, mailID).Scan(&relPath); err != nil {
+		t.Fatalf("query attachment path: %v", err)
+	}
+
+	if strings.Contains(relPath, "..") || strings.ContainsAny(relPath, `<>:"|?*`) {
+		t.Fatalf("file_path was not sanitized: %q", relPath)
+	}
+	if filepath.Ext(relPath) != ".pdf" {
+		t.Fatalf("file_path should preserve extension, got %q", relPath)
+	}
+	if _, err := os.Stat(filepath.Join(attDir, filepath.FromSlash(relPath))); err != nil {
+		t.Fatalf("stored sanitized file should exist: %v", err)
 	}
 }
 

@@ -1,6 +1,6 @@
 ﻿# Task 06: Store SaveAttachment 與 Content-Hashed 檔案
 
-**目標**：實作 `SqliteStore.SaveAttachment`。附件內容先計算 `sha256`，再寫入 `<attachmentDir>/<ab>/<sha256>`，並在 `attachments` 資料表新增對應 row。相同內容的附件應共用同一個實體檔案。
+**目標**：實作 `SqliteStore.SaveAttachment`。附件內容先計算 `sha256`，再寫入 `<attachmentDir>/<ab>/<sha256>_<原始檔名>`，並在 `attachments` 資料表新增對應 row。檔名會先安全化，避免路徑穿越或不合法字元。
 
 **依賴**：Task 05 已完成。
 
@@ -14,10 +14,10 @@
 
 ## 設計筆記
 
-- 實體檔案路徑採 content-hashed layout：`attachments/<前兩碼>/<sha256>`
-- `file_path` 儲存相對路徑，例如 `b9/<sha256>`
+- 實體檔案路徑採 content-hashed layout 並保留原始檔名：`attachments/<前兩碼>/<sha256>_<filename.ext>`
+- `file_path` 儲存相對路徑，例如 `b9/<sha256>_greeting.txt`
 - 寫檔使用 temp file + rename，避免留下半寫入檔案
-- 相同 sha256 可共用一個實體檔案，但 `attachments` table 仍可有多筆 row
+- 相同 sha256 與相同原始檔名可共用一個實體檔案；檔名不同時仍保留各自檔名，`sha256` 欄位負責內容指紋追蹤
 
 ## Steps
 
@@ -212,6 +212,6 @@ git commit -m "Implement content-hashed attachment persistence"
 
 ## 驗收
 
-- 相同內容的附件只會有一份實體檔案
-- `attachments.file_path` 會是相對路徑 `ab/<sha256>`
+- 相同內容且相同檔名的附件只會有一份實體檔案
+- `attachments.file_path` 會是相對路徑 `ab/<sha256>_<filename.ext>`
 - 寫檔採用 temp file + rename，降低半寫入風險

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/austinjan/mail-agent/internal/mail"
 	_ "modernc.org/sqlite"
@@ -139,14 +140,15 @@ func (s *SqliteStore) SaveAttachment(mailID int64, a mail.Attachment) error {
 	sum := sha256.Sum256(a.Content)
 	sumHex := hex.EncodeToString(sum[:])
 	prefix := sumHex[:2]
-	relPath := filepath.ToSlash(filepath.Join(prefix, sumHex))
+	storedName := attachmentStoredName(sumHex, a.Filename)
+	relPath := filepath.ToSlash(filepath.Join(prefix, storedName))
 
 	prefixDir := filepath.Join(s.attachmentDir, prefix)
 	if err := os.MkdirAll(prefixDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %q: %w", prefixDir, err)
 	}
 
-	finalPath := filepath.Join(prefixDir, sumHex)
+	finalPath := filepath.Join(prefixDir, storedName)
 	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
 		tmp, err := os.CreateTemp(prefixDir, "att-*.tmp")
 		if err != nil {
@@ -178,6 +180,34 @@ func (s *SqliteStore) SaveAttachment(mailID int64, a mail.Attachment) error {
 		return fmt.Errorf("insert attachment row: %w", err)
 	}
 	return nil
+}
+
+func attachmentStoredName(sumHex, filename string) string {
+	name := sanitizeAttachmentFilename(filename)
+	if name == "" {
+		return sumHex
+	}
+	return sumHex + "_" + name
+}
+
+func sanitizeAttachmentFilename(filename string) string {
+	name := filepath.Base(strings.TrimSpace(filename))
+	if name == "." || name == string(filepath.Separator) {
+		return ""
+	}
+
+	var b strings.Builder
+	for _, r := range name {
+		switch {
+		case r == '/' || r == '\\' || strings.ContainsRune(`<>:"|?*`, r):
+			b.WriteByte('_')
+		case unicode.IsControl(r):
+			b.WriteByte('_')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return strings.Trim(b.String(), " .")
 }
 
 func defaultSlice(s []string) []string {

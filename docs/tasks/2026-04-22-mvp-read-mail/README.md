@@ -46,7 +46,7 @@
 2. 同命令再跑一次，log 到 0 封 new，全部 deduplicated。
 3. 寄一封新信再跑，log 到 1 封 new。
 4. 中斷程序再啟動，dedup 狀態仍然保留。
-5. 含附件的信會把附件落地到 `attachments/<ab>/<sha256>`，且 `attachments` 資料表有對應列。
+5. 含附件的信會把附件落地到 `attachments/<ab>/<sha256>_<filename.ext>`，且 `attachments` 資料表有對應列。
 
 ## 目前進度
 

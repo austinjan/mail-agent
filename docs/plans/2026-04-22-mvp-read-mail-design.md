@@ -138,11 +138,11 @@ CREATE TABLE attachments (
 
 ```
 ./attachments/
-  ab/abcdef1234...   (sha256 first 2 chars as prefix dir)
-  cd/cdef5678...
+  ab/abcdef1234..._invoice.pdf   (sha256 first 2 chars as prefix dir)
+  cd/cdef5678..._report.xlsx
 ```
 
-Identical attachments (same sha256) share one physical file regardless of how many mails they appear in.
+Attachment paths keep the sha256 prefix for content identity and append a sanitized original filename so downloaded files keep their extension. Identical attachments with the same original filename share one physical file; the `sha256` column remains the canonical content fingerprint when filenames differ.
 
 ### D9. Configuration — single YAML file
 
@@ -253,7 +253,7 @@ mail-agent watch                             # future daemon mode
 2. Re-running the same command logs 0 new mails (all deduplicated).
 3. Sending a new mail and re-running logs exactly 1 new mail.
 4. Stopping/restarting the process preserves dedup state across runs.
-5. A mail with attachments writes all attachment files to disk with correct sha256-derived paths; the `attachments` table rows point to them.
+5. A mail with attachments writes all attachment files to disk with correct sha256-derived paths and preserved filename extensions; the `attachments` table rows point to them.
 
 ## Architecture summary
 
