@@ -59,6 +59,6 @@
 - [x] Task 07 - PR #8
 - [x] Task 08 - PR #8
 - [x] Task 09 - PR #8
-- [ ] Task 10
-- [ ] Task 11
+- [x] Task 10
+- [x] Task 11
 - [ ] Task 12

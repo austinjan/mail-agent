@@ -19,7 +19,7 @@
 
 ## Steps
 
-- [ ] **Step 1: 寫 mock `internal/core/mocks_test.go`**
+- [x] **Step 1: 寫 mock `internal/core/mocks_test.go`**
 
 ```go
 package core
@@ -109,7 +109,7 @@ func strconvU32(n uint32) string {
 
 （實作時若偷懶直接 `import "strconv"` 當然更好，上面 `strconvU32` 是佔位；修掉即可。）
 
-- [ ] **Step 2: 寫失敗測試 `internal/core/pipeline_test.go`**
+- [x] **Step 2: 寫失敗測試 `internal/core/pipeline_test.go`**
 
 ```go
 package core
@@ -241,7 +241,7 @@ func TestRunLogsFetchStartAndDone(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: 跑測試確認失敗**
+- [x] **Step 3: 跑測試確認失敗**
 
 ```bash
 go test ./internal/core/...
@@ -249,7 +249,7 @@ go test ./internal/core/...
 
 預期：編譯錯誤（`New`, `Pipeline`, `Stats` 未定義）。
 
-- [ ] **Step 4: 實作 `internal/core/pipeline.go`**
+- [x] **Step 4: 實作 `internal/core/pipeline.go`**
 
 ```go
 // Package core runs the fetch → dedup → persist pipeline.
@@ -339,7 +339,7 @@ func (p *Pipeline) Run(folder string, since time.Time) (Stats, error) {
 }
 ```
 
-- [ ] **Step 5: 跑測試確認通過**
+- [x] **Step 5: 跑測試確認通過**
 
 ```bash
 go test ./internal/core/...
@@ -347,7 +347,7 @@ go test ./internal/core/...
 
 預期：PASS，五個測試全過。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add internal/core

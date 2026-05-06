@@ -19,7 +19,7 @@
 
 ## Steps
 
-- [ ] **Step 1: 寫 main.go**
+- [x] **Step 1: 寫 main.go**
 
 ```go
 package main
@@ -142,7 +142,7 @@ func versionString() string {
 }
 ```
 
-- [ ] **Step 2: 編譯**
+- [x] **Step 2: 編譯**
 
 ```bash
 go build ./...
@@ -150,7 +150,7 @@ go build ./...
 
 預期：無錯誤；產出 `./mail-agent`（若跑 `go build -o mail-agent ./cmd/mail-agent`）。
 
-- [ ] **Step 3: 煙霧測試 help / version**
+- [x] **Step 3: 煙霧測試 help / version**
 
 ```bash
 go run ./cmd/mail-agent
@@ -166,7 +166,7 @@ go run ./cmd/mail-agent read --since=3d --config=/nonexistent.yaml
 # log 事件 config_load_failed
 ```
 
-- [ ] **Step 4: （可選）加 smoke test**
+- [x] **Step 4: （可選）加 smoke test**
 
 `cmd/mail-agent/main_test.go`（只測 version 組裝）：
 
@@ -188,7 +188,7 @@ go test ./cmd/mail-agent/...
 
 預期：PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add cmd
