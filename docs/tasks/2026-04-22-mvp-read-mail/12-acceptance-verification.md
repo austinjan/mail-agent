@@ -5,6 +5,7 @@
 **依賴**：Task 11。
 
 **Last commit message**：尚未完成，等待真實 IMAP 信箱驗收。
+<!-- GitHub last-commit batch: T12-pending-acceptance -->
 
 ## 產出檔案
 
