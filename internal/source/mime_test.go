@@ -55,3 +55,49 @@ func TestParseRFC822WithAttachment(t *testing.T) {
 		t.Errorf("Content: got %q", a.Content)
 	}
 }
+
+func TestParseRFC822SinglePartBase64(t *testing.T) {
+	raw := []byte(strings.Join([]string{
+		"From: Alice <alice@example.com>",
+		"To: Bob <bob@example.com>",
+		"Subject: Encoded",
+		"Message-ID: <b64-001@example.com>",
+		"Date: Wed, 22 Apr 2026 10:00:00 +0000",
+		"MIME-Version: 1.0",
+		"Content-Type: text/plain; charset=utf-8",
+		"Content-Transfer-Encoding: base64",
+		"",
+		"aGVsbG8gd29ybGQ=",
+	}, "\r\n"))
+
+	m, err := parseRFC822(raw)
+	if err != nil {
+		t.Fatalf("parseRFC822: %v", err)
+	}
+	if strings.TrimSpace(m.BodyText) != "hello world" {
+		t.Errorf("BodyText: got %q", m.BodyText)
+	}
+}
+
+func TestParseRFC822SinglePartQuotedPrintable(t *testing.T) {
+	raw := []byte(strings.Join([]string{
+		"From: Alice <alice@example.com>",
+		"To: Bob <bob@example.com>",
+		"Subject: Encoded QP",
+		"Message-ID: <qp-001@example.com>",
+		"Date: Wed, 22 Apr 2026 10:00:00 +0000",
+		"MIME-Version: 1.0",
+		"Content-Type: text/plain; charset=utf-8",
+		"Content-Transfer-Encoding: quoted-printable",
+		"",
+		"hello=20world",
+	}, "\r\n"))
+
+	m, err := parseRFC822(raw)
+	if err != nil {
+		t.Fatalf("parseRFC822: %v", err)
+	}
+	if strings.TrimSpace(m.BodyText) != "hello world" {
+		t.Errorf("BodyText: got %q", m.BodyText)
+	}
+}
