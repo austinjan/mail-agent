@@ -5,6 +5,7 @@
 **依賴**：Task 05（`Store`）、Task 07（`Source`）。Task 09 可平行進行。
 
 **Last commit message**：`更新 T10–T11 進度打勾`
+<!-- GitHub last-commit batch: T10-T11 -->
 
 ## 產出檔案
 

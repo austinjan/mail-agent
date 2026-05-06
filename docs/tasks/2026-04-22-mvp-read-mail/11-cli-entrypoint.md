@@ -5,6 +5,7 @@
 **依賴**：Task 03（config）、Task 06（store 完整版）、Task 09（imap 完整版）、Task 10（pipeline）。
 
 **Last commit message**：`更新 T10–T11 進度打勾`
+<!-- GitHub last-commit batch: T10-T11 -->
 
 ## 產出檔案
 
