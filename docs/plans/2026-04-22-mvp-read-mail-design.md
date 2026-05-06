@@ -1,7 +1,7 @@
 # MVP: Read Mail — Design
 
 - Date: 2026-04-22
-- Status: Brainstorm complete — ready for implementation plan
+- Status: Implemented through Task 11; Task 12 live acceptance pending
 - Target issue: [#1 讀取信件](https://github.com/austinjan/mail-agent/issues/1)
 - Related: [#2 Dispatch task based on mail](https://github.com/austinjan/mail-agent/issues/2) (out of MVP scope, but design must not block it)
 

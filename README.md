@@ -10,13 +10,19 @@ Tracking issues: [#1 讀取信件](https://github.com/austinjan/mail-agent/issue
 
 ## Status
 
-Design complete, implementation not started. The full design and task
-breakdown live under [`docs/`](./docs):
+MVP read-mail implementation is complete through Task 11. The remaining Task
+12 is live Gmail/IMAP smoke-test acceptance, which requires real credentials
+and a mailbox with test messages. The full design and task breakdown live under
+[`docs/`](./docs):
 
 - [`docs/plans/2026-04-22-mvp-read-mail-design.md`](./docs/plans/2026-04-22-mvp-read-mail-design.md) — design, decisions, schema, architecture
 - [`docs/tasks/2026-04-22-mvp-read-mail/`](./docs/tasks/2026-04-22-mvp-read-mail/) — implementation task breakdown
 
-## Planned usage
+Current implementation includes config loading, mail data types, SQLite-backed
+deduplication and attachment storage, IMAP fetching with MIME parsing, the core
+fetch/dedup/persist pipeline, and the `mail-agent` CLI entrypoint.
+
+## Usage
 
 ```bash
 mail-agent read --since=3d                   # primary command
@@ -24,21 +30,24 @@ mail-agent read --since=3d --folder=INBOX    # override folder from config
 mail-agent version
 ```
 
-`--since` accepts durations (`3d`, `1w`, `24h`) or an RFC-3339 timestamp and is
-mandatory on every invocation. A system cron is the intended trigger for MVP.
+`--since` accepts durations (`3d`, `1w`, `24h`) or an RFC-3339 timestamp. If it
+is omitted, the CLI uses `defaults.since` from `config.yaml`. A system cron is
+the intended trigger for MVP.
 
-## Planned stack
+## Stack
 
 - Go 1.22+
 - IMAP: [`github.com/emersion/go-imap/v2`](https://github.com/emersion/go-imap)
 - SQLite: [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite) (pure Go, no CGO)
+- YAML: [`gopkg.in/yaml.v3`](https://pkg.go.dev/gopkg.in/yaml.v3)
+- Logging: standard library `log/slog` JSON handler
 
 ## Configuration
 
 A single `config.yaml` holds IMAP credentials and paths. `config.yaml` is
-git-ignored; a `config.example.yaml` template will ship in git. Gmail requires
-an App Password (2FA → app passwords), not the account login password. See the
-design doc for the full schema.
+git-ignored; [`config.example.yaml`](./config.example.yaml) ships as the
+template. Gmail requires an App Password (2FA -> app passwords), not the account
+login password. See the design doc for the full schema.
 
 ## Layout
 
