@@ -4,6 +4,8 @@
 
 **依賴**：Task 02 已完成，已有 `mail.Mail` 型別可用。
 
+**Last commit message**：`更新 T07–T09 進度打勾`
+
 ## 產出檔案
 
 - Create: `internal/source/source.go`

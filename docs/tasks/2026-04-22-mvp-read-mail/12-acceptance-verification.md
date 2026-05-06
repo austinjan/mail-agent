@@ -4,6 +4,8 @@
 
 **依賴**：Task 11。
 
+**Last commit message**：尚未完成，等待真實 IMAP 信箱驗收。
+
 ## 產出檔案
 
 - Modify: 本檔（填入實際執行輸出）

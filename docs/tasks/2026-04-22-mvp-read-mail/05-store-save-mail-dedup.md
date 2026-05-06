@@ -4,6 +4,8 @@
 
 **依賴**：Task 04 已完成。
 
+**Last commit message**：`更新 T04–T06 進度打勾`
+
 ## 產出檔案
 
 - Modify: `internal/store/sqlite.go`

@@ -4,6 +4,8 @@
 
 **依賴**：Task 08 已完成。
 
+**Last commit message**：`更新 T07–T09 進度打勾`
+
 ## 產出檔案
 
 - Modify: `internal/source/imap.go`

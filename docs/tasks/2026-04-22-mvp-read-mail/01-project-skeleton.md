@@ -4,6 +4,8 @@
 
 **依賴**：無。
 
+**Last commit message**：`更新 T01–T03 進度打勾`
+
 ## 產出檔案
 
 - Create: `go.mod`

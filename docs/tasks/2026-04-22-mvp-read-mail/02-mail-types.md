@@ -4,6 +4,8 @@
 
 **依賴**：Task 01。
 
+**Last commit message**：`更新 T01–T03 進度打勾`
+
 ## 產出檔案
 
 - Create: `internal/mail/mail.go`
