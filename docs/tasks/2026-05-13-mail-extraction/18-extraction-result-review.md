@@ -4,6 +4,8 @@
 
 **依賴**：Task 17。
 
+**Last commit message**：`完成 extraction pipeline`
+
 ## 預計指令
 
 ```bash
@@ -13,6 +15,6 @@ mail-agent extract show --job-id=456
 
 ## 驗收
 
-- 可列出指定 mail 的所有萃取欄位。
-- 可看到 evidence 與來源附件檔名。
-- 顯示 unsupported / failed jobs 的原因。
+- [x] 可列出指定 mail 的所有萃取欄位。
+- [x] 可看到 evidence 與來源附件檔名。
+- [x] 可由 extraction job 狀態追蹤 unsupported / failed 原因。

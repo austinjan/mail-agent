@@ -4,6 +4,8 @@
 
 **依賴**：Task 14。
 
+**Last commit message**：`完成 extraction pipeline`
+
 ## 重點
 
 - Body job 的 `attachment_id` 為 NULL。
@@ -12,6 +14,6 @@
 
 ## 驗收
 
-- 可為未處理 mail 建立 body jobs。
-- 重跑不重複建立同一 mail body job。
-- 空 body 可標記 unsupported 或 done with no fields。
+- [x] 可為未處理 mail 建立 body jobs。
+- [x] 重跑不重複建立同一 mail body job。
+- [x] 空 body 可標記 unsupported。

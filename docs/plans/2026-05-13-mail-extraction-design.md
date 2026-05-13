@@ -1,7 +1,7 @@
 # Mail Extraction — Design
 
 - Date: 2026-05-13
-- Status: Proposed for implementation
+- Status: Implemented without OCR
 - Builds on: [MVP: Read Mail — Design](./2026-04-22-mvp-read-mail-design.md)
 
 ## Goal

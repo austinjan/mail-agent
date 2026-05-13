@@ -4,6 +4,8 @@
 
 **依賴**：Task 14。
 
+**Last commit message**：`完成 extraction pipeline`
+
 ## 支援順序
 
 - Text-based PDF
@@ -19,6 +21,11 @@
 
 ## 驗收
 
-- 支援格式可產生 extraction input text。
-- 不支援格式標為 `unsupported`，不算程式錯誤。
-- 不呼叫 OCR 工具或服務。
+- [x] 支援格式可產生 extraction input text。
+- [x] 不支援格式標為 `unsupported`，不算程式錯誤。
+- [x] 不呼叫 OCR 工具或服務。
+
+## 目前限制
+
+- PDF 只嘗試擷取既有文字層，不處理掃描圖像。
+- 圖片附件與 image-only PDF 會標為 `unsupported`。

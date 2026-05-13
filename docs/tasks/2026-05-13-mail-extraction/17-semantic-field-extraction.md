@@ -4,6 +4,8 @@
 
 **依賴**：Task 15、Task 16。
 
+**Last commit message**：`完成 extraction pipeline`
+
 ## 原則
 
 - 不依賴固定關鍵字位置。
@@ -13,6 +15,11 @@
 
 ## 驗收
 
-- 可處理中英文混合敘述。
-- 可從同一段文字抽出多個欄位。
-- 結果寫入 `extracted_fields`。
+- [x] 可處理中英文混合敘述。
+- [x] 可從同一段文字抽出多個欄位。
+- [x] 結果寫入 `extracted_fields`。
+
+## 目前策略
+
+- 第一版使用內建欄位規則與 evidence chunk，不使用外部 LLM。
+- 欄位位置不固定時，先用段落 / 表格文字 chunk 判斷候選值。

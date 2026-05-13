@@ -4,6 +4,8 @@
 
 **依賴**：Task 13。
 
+**Last commit message**：`完成 extraction pipeline`
+
 ## 預計指令
 
 ```bash
@@ -14,6 +16,6 @@ mail-agent extract show --mail-id=123
 
 ## 驗收
 
-- CLI help 可看到 `extract`。
-- 未實作路徑給出清楚 log 或錯誤訊息。
-- 不影響既有 `read` 與 `version`。
+- [x] CLI help 可看到 `extract`。
+- [x] `extract enqueue`、`extract run`、`extract show` 已接到 CLI。
+- [x] 不影響既有 `read` 與 `version`。

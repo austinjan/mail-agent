@@ -273,6 +273,91 @@ func TestExtractionSchemaConstraints(t *testing.T) {
 	}
 }
 
+func TestExtractionJobLifecycle(t *testing.T) {
+	dir := t.TempDir()
+	s, err := OpenSQLite(filepath.Join(dir, "test.db"), filepath.Join(dir, "attachments"))
+	if err != nil {
+		t.Fatalf("OpenSQLite: %v", err)
+	}
+	defer s.Close()
+
+	receivedAt := time.Now().UTC()
+	mailID, err := s.SaveMail(mail.Mail{
+		UIDValidity: 1,
+		UID:         1,
+		Folder:      "INBOX",
+		ReceivedAt:  receivedAt,
+		BodyText:    "Flow 120 m3/h",
+	})
+	if err != nil {
+		t.Fatalf("SaveMail: %v", err)
+	}
+	if err := s.SaveAttachment(mailID, mail.Attachment{
+		Filename:    "spec.txt",
+		ContentType: "text/plain",
+		Content:     []byte("Head 45m TDH"),
+	}); err != nil {
+		t.Fatalf("SaveAttachment: %v", err)
+	}
+
+	stats, err := s.EnqueueExtractionJobs(receivedAt.Add(-time.Hour))
+	if err != nil {
+		t.Fatalf("EnqueueExtractionJobs: %v", err)
+	}
+	if stats.BodyJobs != 1 || stats.AttachmentJobs != 1 {
+		t.Fatalf("enqueue stats: %+v", stats)
+	}
+
+	stats, err = s.EnqueueExtractionJobs(receivedAt.Add(-time.Hour))
+	if err != nil {
+		t.Fatalf("EnqueueExtractionJobs second run: %v", err)
+	}
+	if stats.BodyJobs != 0 || stats.AttachmentJobs != 0 {
+		t.Fatalf("second enqueue should be idempotent, got %+v", stats)
+	}
+
+	jobs, err := s.PendingExtractionJobs(10)
+	if err != nil {
+		t.Fatalf("PendingExtractionJobs: %v", err)
+	}
+	if len(jobs) != 2 {
+		t.Fatalf("pending jobs: got %d want 2", len(jobs))
+	}
+
+	bodyJob := jobs[0]
+	if bodyJob.SourceType != "body" {
+		bodyJob = jobs[1]
+	}
+	if err := s.MarkExtractionJobRunning(bodyJob.ID); err != nil {
+		t.Fatalf("MarkExtractionJobRunning: %v", err)
+	}
+	if err := s.CompleteExtractionJob(bodyJob.ID, []ExtractedField{
+		{
+			MailID:       mailID,
+			FieldName:    "流量",
+			FieldValue:   "120",
+			Unit:         "m3/h",
+			Confidence:   0.8,
+			EvidenceText: "Flow 120 m3/h",
+			SourceType:   "body",
+			SourceLabel:  "mail body",
+		},
+	}); err != nil {
+		t.Fatalf("CompleteExtractionJob: %v", err)
+	}
+
+	fields, err := s.ExtractedFieldsByMailID(mailID)
+	if err != nil {
+		t.Fatalf("ExtractedFieldsByMailID: %v", err)
+	}
+	if len(fields) != 1 {
+		t.Fatalf("fields: got %d want 1", len(fields))
+	}
+	if fields[0].FieldName != "流量" || fields[0].FieldValue != "120" || fields[0].EvidenceText == "" {
+		t.Fatalf("unexpected field: %+v", fields[0])
+	}
+}
+
 func TestSaveAttachmentSanitizesFilename(t *testing.T) {
 	dir := t.TempDir()
 	attDir := filepath.Join(dir, "attachments")

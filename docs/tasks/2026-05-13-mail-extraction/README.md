@@ -18,8 +18,15 @@
 ## 目前進度
 
 - [x] Task 13
-- [ ] Task 14
-- [ ] Task 15
-- [ ] Task 16
-- [ ] Task 17
-- [ ] Task 18
+- [x] Task 14
+- [x] Task 15
+- [x] Task 16
+- [x] Task 17
+- [x] Task 18
+
+## 實作備註
+
+- `mail-agent extract enqueue --since=24h` 會為已入庫 mail body 與附件建立 extraction jobs。
+- `mail-agent extract run --limit=20` 會處理 pending jobs，寫入 `extracted_fields`。
+- `mail-agent extract show --mail-id=123` 會列出欄位、值、單位、confidence、evidence 與來源。
+- 不使用 OCR；圖片、掃描 PDF 或無文字層 PDF 會標為 `unsupported`。
