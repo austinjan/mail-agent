@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -46,6 +47,7 @@ Usage:
   mail-agent extract enqueue --since=<duration> [--config=./config.yaml]
   mail-agent extract run [--limit=20] [--config=./config.yaml]
   mail-agent extract show --mail-id=<id> [--config=./config.yaml]
+  mail-agent extract export --out=extracted_fields.csv [--mail-id=<id>] [--config=./config.yaml]
   mail-agent version
 
 Examples:
@@ -55,6 +57,7 @@ Examples:
   mail-agent extract enqueue --since=24h
   mail-agent extract run --limit=20
   mail-agent extract show --mail-id=1
+  mail-agent extract export --out=extracted_fields.csv
 `)
 }
 
@@ -136,6 +139,8 @@ func runExtract(args []string) {
 		runExtractRun(args[1:])
 	case "show":
 		runExtractShow(args[1:])
+	case "export":
+		runExtractExport(args[1:])
 	case "-h", "--help", "help":
 		extractUsage()
 	default:
@@ -151,6 +156,7 @@ Usage:
   mail-agent extract enqueue --since=<duration> [--config=./config.yaml]
   mail-agent extract run [--limit=20] [--config=./config.yaml]
   mail-agent extract show --mail-id=<id> [--config=./config.yaml]
+  mail-agent extract export --out=extracted_fields.csv [--mail-id=<id>] [--config=./config.yaml]
 `)
 }
 
@@ -264,6 +270,101 @@ func runExtractShow(args []string) {
 		logger.Info("", attrs...)
 	}
 	logger.Info("", "event", "extract_show_done", "mail_id", mailID, "fields", len(fields))
+}
+
+func runExtractExport(args []string) {
+	fs := flag.NewFlagSet("extract export", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	outPath := fs.String("out", "extracted_fields.csv", "CSV output path")
+	mailIDStr := fs.String("mail-id", "", "optional mail id filter")
+	cfgPath := fs.String("config", "config.yaml", "path to YAML config")
+	if err := fs.Parse(args); err != nil {
+		return
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	_, st, ok := openConfiguredStore(*cfgPath, logger)
+	if !ok {
+		return
+	}
+	defer st.Close()
+
+	var mailID *int64
+	if *mailIDStr != "" {
+		id, err := strconv.ParseInt(*mailIDStr, 10, 64)
+		if err != nil || id <= 0 {
+			logger.Error("", "event", "mail_id_invalid", "input", *mailIDStr)
+			return
+		}
+		mailID = &id
+	}
+
+	fields, err := st.ExtractedFields(mailID)
+	if err != nil {
+		logger.Error("", "event", "extract_export_failed", "error", err.Error())
+		return
+	}
+	if err := writeExtractedFieldsCSV(*outPath, fields); err != nil {
+		logger.Error("", "event", "extract_export_failed", "error", err.Error())
+		return
+	}
+	logger.Info("", "event", "extract_export_done", "out", *outPath, "fields", len(fields))
+}
+
+func writeExtractedFieldsCSV(path string, fields []store.ExtractedField) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create csv %q: %w", path, err)
+	}
+	defer f.Close()
+
+	// UTF-8 BOM keeps Traditional Chinese readable when opened directly in Excel.
+	if _, err := f.Write([]byte{0xEF, 0xBB, 0xBF}); err != nil {
+		return fmt.Errorf("write csv bom: %w", err)
+	}
+
+	w := csv.NewWriter(f)
+	if err := w.Write([]string{
+		"mail_id",
+		"job_id",
+		"attachment_id",
+		"field_name",
+		"field_value",
+		"unit",
+		"confidence",
+		"evidence_text",
+		"source_type",
+		"source_label",
+		"created_at",
+	}); err != nil {
+		return fmt.Errorf("write csv header: %w", err)
+	}
+	for _, field := range fields {
+		attachmentID := ""
+		if field.AttachmentID != nil {
+			attachmentID = strconv.FormatInt(*field.AttachmentID, 10)
+		}
+		if err := w.Write([]string{
+			strconv.FormatInt(field.MailID, 10),
+			strconv.FormatInt(field.JobID, 10),
+			attachmentID,
+			field.FieldName,
+			field.FieldValue,
+			field.Unit,
+			strconv.FormatFloat(field.Confidence, 'f', 2, 64),
+			field.EvidenceText,
+			field.SourceType,
+			field.SourceLabel,
+			field.CreatedAt.Format(time.RFC3339),
+		}); err != nil {
+			return fmt.Errorf("write csv row: %w", err)
+		}
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return fmt.Errorf("flush csv: %w", err)
+	}
+	return nil
 }
 
 func openConfiguredStore(cfgPath string, logger *slog.Logger) (*config.Config, *store.SqliteStore, bool) {

@@ -30,6 +30,7 @@ mail-agent read --since=3d --folder=INBOX    # override folder from config
 mail-agent extract enqueue --since=24h       # create extraction jobs
 mail-agent extract run --limit=20            # process pending extraction jobs
 mail-agent extract show --mail-id=123        # review extracted fields
+mail-agent extract export --out=fields.csv   # export extracted fields to CSV
 mail-agent version
 ```
 

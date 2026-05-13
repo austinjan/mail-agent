@@ -248,6 +248,59 @@ ORDER BY id ASC
 	return fields, nil
 }
 
+func (s *SqliteStore) ExtractedFields(mailID *int64) ([]ExtractedField, error) {
+	query := `
+SELECT
+	job_id, mail_id, attachment_id, field_name, field_value, COALESCE(unit, ''),
+	COALESCE(confidence, 0), evidence_text, source_type, COALESCE(source_label, ''), created_at
+FROM extracted_fields`
+	var args []any
+	if mailID != nil {
+		query += ` WHERE mail_id = ?`
+		args = append(args, *mailID)
+	}
+	query += ` ORDER BY mail_id ASC, id ASC`
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query extracted fields: %w", err)
+	}
+	defer rows.Close()
+	return scanExtractedFields(rows)
+}
+
 func (s *SqliteStore) AttachmentFullPath(relPath string) string {
 	return filepath.Join(s.attachmentDir, filepath.FromSlash(relPath))
+}
+
+func scanExtractedFields(rows *sql.Rows) ([]ExtractedField, error) {
+	var fields []ExtractedField
+	for rows.Next() {
+		var f ExtractedField
+		var attachmentID sql.NullInt64
+		if err := rows.Scan(
+			&f.JobID,
+			&f.MailID,
+			&attachmentID,
+			&f.FieldName,
+			&f.FieldValue,
+			&f.Unit,
+			&f.Confidence,
+			&f.EvidenceText,
+			&f.SourceType,
+			&f.SourceLabel,
+			&f.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan extracted field: %w", err)
+		}
+		if attachmentID.Valid {
+			id := attachmentID.Int64
+			f.AttachmentID = &id
+		}
+		fields = append(fields, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate extracted fields: %w", err)
+	}
+	return fields, nil
 }
