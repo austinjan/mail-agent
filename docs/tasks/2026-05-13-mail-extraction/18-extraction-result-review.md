@@ -1,0 +1,18 @@
+# Task 18 — Extraction result review
+
+**目標**：提供查詢與人工檢查萃取結果的指令，讓使用者能回看來源 mail、附件、欄位、evidence 與 confidence。
+
+**依賴**：Task 17。
+
+## 預計指令
+
+```bash
+mail-agent extract show --mail-id=123
+mail-agent extract show --job-id=456
+```
+
+## 驗收
+
+- 可列出指定 mail 的所有萃取欄位。
+- 可看到 evidence 與來源附件檔名。
+- 顯示 unsupported / failed jobs 的原因。

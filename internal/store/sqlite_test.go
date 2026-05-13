@@ -189,6 +189,90 @@ func TestSaveAttachmentWritesFile(t *testing.T) {
 	}
 }
 
+func TestOpenCreatesExtractionSchema(t *testing.T) {
+	dir := t.TempDir()
+	s, err := OpenSQLite(filepath.Join(dir, "test.db"), filepath.Join(dir, "attachments"))
+	if err != nil {
+		t.Fatalf("OpenSQLite: %v", err)
+	}
+	defer s.Close()
+
+	for _, table := range []string{"extraction_jobs", "extracted_fields"} {
+		var name string
+		err := s.db.QueryRow(
+			`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+			table,
+		).Scan(&name)
+		if err != nil {
+			t.Fatalf("query table %s: %v", table, err)
+		}
+		if name != table {
+			t.Fatalf("table name: got %q want %q", name, table)
+		}
+	}
+}
+
+func TestExtractionSchemaConstraints(t *testing.T) {
+	dir := t.TempDir()
+	s, err := OpenSQLite(filepath.Join(dir, "test.db"), filepath.Join(dir, "attachments"))
+	if err != nil {
+		t.Fatalf("OpenSQLite: %v", err)
+	}
+	defer s.Close()
+
+	mailID, err := s.SaveMail(mail.Mail{
+		UIDValidity: 1,
+		UID:         1,
+		Folder:      "INBOX",
+		ReceivedAt:  time.Now().UTC(),
+	})
+	if err != nil {
+		t.Fatalf("SaveMail: %v", err)
+	}
+
+	now := time.Now().UTC()
+	res, err := s.db.Exec(
+		`INSERT INTO extraction_jobs (mail_id, source_type, status, created_at, updated_at)
+		 VALUES (?, 'body', 'pending', ?, ?)`,
+		mailID,
+		now,
+		now,
+	)
+	if err != nil {
+		t.Fatalf("insert extraction job: %v", err)
+	}
+	jobID, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("LastInsertId: %v", err)
+	}
+
+	_, err = s.db.Exec(
+		`INSERT INTO extracted_fields (
+			job_id, mail_id, field_name, field_value, unit, confidence,
+			evidence_text, source_type, source_label, created_at
+		) VALUES (?, ?, '流量', '120', 'm3/h', 0.9, 'Flow rate 120 m3/h', 'body', 'mail body', ?)`,
+		jobID,
+		mailID,
+		now,
+	)
+	if err != nil {
+		t.Fatalf("insert extracted field: %v", err)
+	}
+
+	_, err = s.db.Exec(
+		`INSERT INTO extracted_fields (
+			job_id, mail_id, field_name, field_value, confidence,
+			evidence_text, source_type, created_at
+		) VALUES (?, ?, '揚程', '45', 1.5, '45m TDH', 'body', ?)`,
+		jobID,
+		mailID,
+		now,
+	)
+	if err == nil {
+		t.Fatal("expected confidence > 1 to fail")
+	}
+}
+
 func TestSaveAttachmentSanitizesFilename(t *testing.T) {
 	dir := t.TempDir()
 	attDir := filepath.Join(dir, "attachments")
