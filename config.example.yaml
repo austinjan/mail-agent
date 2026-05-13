@@ -12,6 +12,6 @@ database:
 attachments:
   dir: ./attachments
 llm:
-  provider: openai
-  model: gpt-5-mini
-  api_key_env: OPENAI_API_KEY   # set this environment variable; do not commit API keys
+  provider: gemini
+  model: gemini-2.5-flash
+  api_key_env: Gkey   # set this environment variable; do not commit API keys

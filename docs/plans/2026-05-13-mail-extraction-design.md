@@ -1,7 +1,7 @@
 # Mail Extraction — Design
 
 - Date: 2026-05-13
-- Status: Implemented with LLM extraction, without OCR
+- Status: Implemented with Gemini/OpenAI LLM extraction, without OCR
 - Builds on: [MVP: Read Mail — Design](./2026-04-22-mvp-read-mail-design.md)
 
 ## Goal

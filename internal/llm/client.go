@@ -24,6 +24,13 @@ type Client struct {
 	doer   HTTPDoer
 }
 
+type GeminiClient struct {
+	apiKey string
+	model  string
+	url    string
+	doer   HTTPDoer
+}
+
 type ExtractedField struct {
 	FieldName    string  `json:"field_name"`
 	FieldValue   string  `json:"field_value"`
@@ -54,13 +61,34 @@ func NewClient(apiKey, model string) *Client {
 		model:  strings.TrimSpace(model),
 		url:    defaultResponsesURL,
 		doer: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 180 * time.Second,
 		},
 	}
 }
 
 func NewClientForTest(apiKey, model, url string, doer HTTPDoer) *Client {
 	c := NewClient(apiKey, model)
+	c.url = url
+	c.doer = doer
+	return c
+}
+
+func NewGeminiClient(apiKey, model string) *GeminiClient {
+	if strings.TrimSpace(model) == "" {
+		model = "gemini-2.5-flash"
+	}
+	return &GeminiClient{
+		apiKey: strings.TrimSpace(apiKey),
+		model:  strings.TrimSpace(model),
+		url:    fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model),
+		doer: &http.Client{
+			Timeout: 180 * time.Second,
+		},
+	}
+}
+
+func NewGeminiClientForTest(apiKey, model, url string, doer HTTPDoer) *GeminiClient {
+	c := NewGeminiClient(apiKey, model)
 	c.url = url
 	c.doer = doer
 	return c
@@ -78,19 +106,8 @@ func (c *Client) ExtractFields(ctx context.Context, text, sourceLabel string) ([
 		"model": c.model,
 		"input": []map[string]string{
 			{
-				"role": "system",
-				"content": strings.Join([]string{
-					"你是一個專業的工程助理。請從提供的郵件或附件文字中，找出所有「離心幫浦選型需求」。",
-					"如果資料裡有多組需求，請輸出多個 items；如果沒有選型需求，items 請回空陣列。",
-					"只擷取這 8 個欄位：Item, CMH, m, RPM, 黏度, 比重, SSVP管長, 機殼鑄造方式。",
-					"CMH 是流量，可以包含單位，例如 120CMH 或 120 m3/h。",
-					"m 是揚程，絕對不要包含單位，只填純數字。",
-					"RPM 是轉速，絕對不要包含單位，只填純數字；若無請填空字串。",
-					"黏度、比重、SSVP管長都絕對不要包含單位，只填純數字；若無請填 0。",
-					"機殼鑄造方式是砂模鑄造、脫蠟鑄造等鑄造方式，不是材質或機型；若無請填空字串。",
-					"數字小數點後最多三位，不要用無意義的 0 結尾。",
-					"不要猜測。每個 item 都必須附 evidence_text，引用支撐該筆資料的原文。",
-				}, " "),
+				"role":    "system",
+				"content": pumpExtractionPrompt(),
 			},
 			{
 				"role":    "user",
@@ -113,28 +130,8 @@ func (c *Client) ExtractFields(ctx context.Context, text, sourceLabel string) ([
 							"items": map[string]any{
 								"type":                 "object",
 								"additionalProperties": false,
-								"required": []string{
-									"Item",
-									"CMH",
-									"m",
-									"RPM",
-									"黏度",
-									"比重",
-									"SSVP管長",
-									"機殼鑄造方式",
-									"evidence_text",
-								},
-								"properties": map[string]any{
-									"Item":          map[string]any{"type": "integer"},
-									"CMH":           map[string]any{"type": "string"},
-									"m":             map[string]any{"type": "string"},
-									"RPM":           map[string]any{"type": "string"},
-									"黏度":            map[string]any{"type": "string"},
-									"比重":            map[string]any{"type": "string"},
-									"SSVP管長":        map[string]any{"type": "string"},
-									"機殼鑄造方式":        map[string]any{"type": "string"},
-									"evidence_text": map[string]any{"type": "string"},
-								},
+								"required":             pumpDataRequired(),
+								"properties":           pumpDataProperties(),
 							},
 						},
 					},
@@ -177,6 +174,127 @@ func (c *Client) ExtractFields(ctx context.Context, text, sourceLabel string) ([
 		return nil, fmt.Errorf("parse extraction JSON: %w: %s", err, out)
 	}
 	return pumpDataToFields(payload.Items), nil
+}
+
+func (c *GeminiClient) ExtractFields(ctx context.Context, text, sourceLabel string) ([]ExtractedField, error) {
+	if c.apiKey == "" {
+		return nil, fmt.Errorf("missing Gemini API key")
+	}
+	if c.model == "" {
+		return nil, fmt.Errorf("missing Gemini model")
+	}
+
+	reqBody := map[string]any{
+		"contents": []map[string]any{
+			{
+				"parts": []map[string]string{
+					{"text": fmt.Sprintf("%s\n\nSource: %s\n\nText:\n%s", pumpExtractionPrompt(), sourceLabel, truncateForLLM(text, 18000))},
+				},
+			},
+		},
+		"generationConfig": map[string]any{
+			"temperature":        0.1,
+			"responseMimeType":   "application/json",
+			"responseJsonSchema": pumpExtractionSchema(),
+		},
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal gemini request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create gemini request: %w", err)
+	}
+	req.Header.Set("x-goog-api-key", c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.doer.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("call gemini API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read gemini body: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("gemini API status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	out, err := geminiOutputText(respBody)
+	if err != nil {
+		return nil, err
+	}
+	var payload extractionPayload
+	if err := json.Unmarshal([]byte(out), &payload); err != nil {
+		return nil, fmt.Errorf("parse gemini extraction JSON: %w: %s", err, out)
+	}
+	return pumpDataToFields(payload.Items), nil
+}
+
+func pumpExtractionPrompt() string {
+	return strings.Join([]string{
+		"你是一個專業的工程助理。請從提供的郵件或附件文字中，找出所有「離心幫浦選型需求」。",
+		"如果資料裡有多組需求，請輸出多個 items；如果沒有選型需求，items 請回空陣列。",
+		"只擷取這 8 個欄位：Item, CMH, m, RPM, 黏度, 比重, SSVP管長, 機殼鑄造方式。",
+		"CMH 是流量，可以包含單位，例如 120CMH 或 120 m3/h。",
+		"m 是揚程，絕對不要包含單位，只填純數字。",
+		"RPM 是轉速，絕對不要包含單位，只填純數字；若無請填空字串。",
+		"黏度、比重、SSVP管長都絕對不要包含單位，只填純數字；若無請填 0。",
+		"機殼鑄造方式是砂模鑄造、脫蠟鑄造等鑄造方式，不是材質或機型；若無請填空字串。",
+		"數字小數點後最多三位，不要用無意義的 0 結尾。",
+		"不要猜測。每個 item 都必須附 evidence_text，引用支撐該筆資料的原文。",
+	}, " ")
+}
+
+func pumpExtractionSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"items"},
+		"properties": map[string]any{
+			"items": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"required":             pumpDataRequired(),
+					"properties":           pumpDataProperties(),
+				},
+			},
+		},
+	}
+}
+
+func pumpDataRequired() []string {
+	return []string{
+		"Item",
+		"CMH",
+		"m",
+		"RPM",
+		"黏度",
+		"比重",
+		"SSVP管長",
+		"機殼鑄造方式",
+		"evidence_text",
+	}
+}
+
+func pumpDataProperties() map[string]any {
+	return map[string]any{
+		"Item":          map[string]any{"type": "integer"},
+		"CMH":           map[string]any{"type": "string"},
+		"m":             map[string]any{"type": "string"},
+		"RPM":           map[string]any{"type": "string"},
+		"黏度":            map[string]any{"type": "string"},
+		"比重":            map[string]any{"type": "string"},
+		"SSVP管長":        map[string]any{"type": "string"},
+		"機殼鑄造方式":        map[string]any{"type": "string"},
+		"evidence_text": map[string]any{"type": "string"},
+	}
 }
 
 func pumpDataToFields(items []pumpData) []ExtractedField {
@@ -242,6 +360,29 @@ func responseOutputText(data []byte) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("responses output did not contain text")
+}
+
+func geminiOutputText(data []byte) (string, error) {
+	var envelope struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return "", fmt.Errorf("parse gemini envelope: %w", err)
+	}
+	for _, candidate := range envelope.Candidates {
+		for _, part := range candidate.Content.Parts {
+			if part.Text != "" {
+				return part.Text, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("gemini output did not contain text")
 }
 
 func truncateForLLM(s string, maxRunes int) string {

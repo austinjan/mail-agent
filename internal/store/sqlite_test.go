@@ -358,6 +358,55 @@ func TestExtractionJobLifecycle(t *testing.T) {
 	}
 }
 
+func TestPendingExtractionJobsIncludesFailedRetries(t *testing.T) {
+	dir := t.TempDir()
+	s, err := OpenSQLite(filepath.Join(dir, "test.db"), filepath.Join(dir, "attachments"))
+	if err != nil {
+		t.Fatalf("OpenSQLite: %v", err)
+	}
+	defer s.Close()
+
+	receivedAt := time.Now().UTC()
+	mailID, err := s.SaveMail(mail.Mail{
+		UIDValidity: 1,
+		UID:         1,
+		Folder:      "INBOX",
+		ReceivedAt:  receivedAt,
+		BodyText:    "Flow 120CMH",
+	})
+	if err != nil {
+		t.Fatalf("SaveMail: %v", err)
+	}
+	if _, err := s.EnqueueExtractionJobs(receivedAt.Add(-time.Hour)); err != nil {
+		t.Fatalf("EnqueueExtractionJobs: %v", err)
+	}
+
+	jobs, err := s.PendingExtractionJobs(10)
+	if err != nil {
+		t.Fatalf("PendingExtractionJobs: %v", err)
+	}
+	if len(jobs) != 1 {
+		t.Fatalf("pending jobs: got %d want 1", len(jobs))
+	}
+	if err := s.MarkExtractionJobRunning(jobs[0].ID); err != nil {
+		t.Fatalf("MarkExtractionJobRunning: %v", err)
+	}
+	if err := s.MarkExtractionJobFailed(jobs[0].ID, "temporary timeout"); err != nil {
+		t.Fatalf("MarkExtractionJobFailed: %v", err)
+	}
+
+	jobs, err = s.PendingExtractionJobs(10)
+	if err != nil {
+		t.Fatalf("PendingExtractionJobs after fail: %v", err)
+	}
+	if len(jobs) != 1 {
+		t.Fatalf("failed job should be retryable, got %d jobs for mail %d", len(jobs), mailID)
+	}
+	if jobs[0].Status != "failed" {
+		t.Fatalf("job status: got %q want failed", jobs[0].Status)
+	}
+}
+
 func TestSaveAttachmentSanitizesFilename(t *testing.T) {
 	dir := t.TempDir()
 	attDir := filepath.Join(dir, "attachments")

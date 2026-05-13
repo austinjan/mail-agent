@@ -459,35 +459,49 @@ func configuredExtractor(mode string, cfg *config.Config, logger *slog.Logger) (
 	case "llm":
 		provider := cfg.LLM.Provider
 		if provider == "" {
-			provider = "openai"
+			provider = "gemini"
 		}
-		if provider != "openai" {
+		model := cfg.LLM.Model
+		apiKeyEnv := cfg.LLM.APIKeyEnv
+		apiKey, usedEnv := llmAPIKey(provider, apiKeyEnv)
+		if apiKey == "" {
+			logger.Error("", "event", "llm_api_key_missing", "provider", provider, "env", apiKeyEnv, "fallback_envs", "Gkey,OPENAI_API_KEY", "hint", "set the environment variable or run extract with --mode=rules")
+			return nil, false
+		}
+		switch provider {
+		case "gemini":
+			if model == "" {
+				model = "gemini-2.5-flash"
+			}
+			logger.Info("", "event", "extract_mode", "mode", "llm", "provider", provider, "model", model, "api_key_env", usedEnv)
+			return extract.NewLLMExtractor(llm.NewGeminiClient(apiKey, model)), true
+		case "openai":
+			if model == "" {
+				model = "gpt-5-mini"
+			}
+			logger.Info("", "event", "extract_mode", "mode", "llm", "provider", provider, "model", model, "api_key_env", usedEnv)
+			return extract.NewLLMExtractor(llm.NewClient(apiKey, model)), true
+		default:
 			logger.Error("", "event", "llm_provider_unsupported", "provider", provider)
 			return nil, false
 		}
-		model := cfg.LLM.Model
-		if model == "" {
-			model = "gpt-5-mini"
-		}
-		apiKeyEnv := cfg.LLM.APIKeyEnv
-		if apiKeyEnv == "" {
-			apiKeyEnv = "OPENAI_API_KEY"
-		}
-		apiKey, usedEnv := llmAPIKey(apiKeyEnv)
-		if apiKey == "" {
-			logger.Error("", "event", "openai_api_key_missing", "env", apiKeyEnv, "fallback_envs", "OPENAI_API_KEY,Gkey", "hint", "set the environment variable or run extract with --mode=rules")
-			return nil, false
-		}
-		logger.Info("", "event", "extract_mode", "mode", "llm", "provider", provider, "model", model, "api_key_env", usedEnv)
-		return extract.NewLLMExtractor(llm.NewClient(apiKey, model)), true
 	default:
 		logger.Error("", "event", "extract_mode_invalid", "mode", mode, "hint", "use --mode=llm or --mode=rules")
 		return nil, false
 	}
 }
 
-func llmAPIKey(primaryEnv string) (string, string) {
-	for _, name := range []string{primaryEnv, "OPENAI_API_KEY", "Gkey"} {
+func llmAPIKey(provider, primaryEnv string) (string, string) {
+	envs := []string{primaryEnv}
+	switch provider {
+	case "gemini":
+		envs = append(envs, "Gkey", "GEMINI_API_KEY", "OPENAI_API_KEY")
+	case "openai":
+		envs = append(envs, "OPENAI_API_KEY", "Gkey")
+	default:
+		envs = append(envs, "Gkey", "OPENAI_API_KEY")
+	}
+	for _, name := range envs {
 		if name == "" {
 			continue
 		}

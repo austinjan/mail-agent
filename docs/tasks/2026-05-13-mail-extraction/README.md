@@ -27,7 +27,7 @@
 ## 實作備註
 
 - `mail-agent extract enqueue --since=24h` 會為已入庫 mail body 與附件建立 extraction jobs。
-- `mail-agent extract run --limit=20` 預設使用 OpenAI LLM 處理 pending jobs，寫入 `extracted_fields`。
+- `mail-agent extract run --limit=20` 預設使用 Gemini LLM 處理 pending jobs，寫入 `extracted_fields`。
 - `mail-agent extract run --mode=rules --limit=20` 可使用本機規則備援。
 - `mail-agent extract show --mail-id=123` 會列出欄位、值、單位、confidence、evidence 與來源。
 - `mail-agent extract export --out=extracted_fields.csv` 會把萃取結果匯出成 Excel 友善的 TypeSearch CSV。

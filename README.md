@@ -54,15 +54,15 @@ git-ignored; [`config.example.yaml`](./config.example.yaml) ships as the
 template. Gmail requires an App Password (2FA -> app passwords), not the account
 login password. See the design doc for the full schema.
 
-LLM extraction uses OpenAI by default. Set the API key in an environment
+LLM extraction uses Gemini by default. Set the API key in an environment
 variable instead of storing it in YAML:
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
+$env:Gkey="your Gemini API key"
 ```
 
-For compatibility with older local scripts, `Gkey` is also accepted as a
-fallback environment variable.
+OpenAI is still available by setting `llm.provider: openai` and
+`llm.api_key_env: OPENAI_API_KEY` in `config.yaml`.
 
 The exported CSV follows the TypeSearch-oriented columns:
 

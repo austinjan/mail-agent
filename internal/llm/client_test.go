@@ -53,3 +53,43 @@ func TestExtractFieldsParsesStructuredResponse(t *testing.T) {
 		t.Fatalf("unexpected fields: %+v", got)
 	}
 }
+
+func TestGeminiExtractFieldsParsesStructuredResponse(t *testing.T) {
+	client := NewGeminiClientForTest("gemini-key", "gemini-2.5-flash", "https://example.test/gemini", roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if got := req.Header.Get("x-goog-api-key"); got != "gemini-key" {
+			t.Fatalf("x-goog-api-key: got %q", got)
+		}
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		bodyText := string(body)
+		if !strings.Contains(bodyText, "responseJsonSchema") || !strings.Contains(bodyText, "responseMimeType") {
+			t.Fatalf("gemini request should use structured outputs schema: %s", body)
+		}
+		return &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(strings.NewReader(`{
+				"candidates": [{
+					"content": {
+						"parts": [{
+							"text": "{\"items\":[{\"Item\":1,\"CMH\":\"80CMH\",\"m\":\"30\",\"RPM\":\"\",\"黏度\":\"0\",\"比重\":\"1\",\"SSVP管長\":\"0\",\"機殼鑄造方式\":\"\",\"evidence_text\":\"80CMH 30m\"}]}"
+						}]
+					}
+				}]
+			}`)),
+		}, nil
+	}))
+
+	fields, err := client.ExtractFields(t.Context(), "80CMH 30m", "mail body")
+	if err != nil {
+		t.Fatalf("ExtractFields: %v", err)
+	}
+	got := map[string]string{}
+	for _, field := range fields {
+		got[field.FieldName] = field.FieldValue
+	}
+	if got["1.CMH"] != "80CMH" || got["1.m"] != "30" {
+		t.Fatalf("unexpected fields: %+v", got)
+	}
+}

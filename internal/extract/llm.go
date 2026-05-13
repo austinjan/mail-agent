@@ -19,10 +19,14 @@ func (RuleExtractor) Extract(_ context.Context, text string, job store.Extractio
 }
 
 type LLMExtractor struct {
-	client *llm.Client
+	client LLMClient
 }
 
-func NewLLMExtractor(client *llm.Client) *LLMExtractor {
+type LLMClient interface {
+	ExtractFields(ctx context.Context, text, sourceLabel string) ([]llm.ExtractedField, error)
+}
+
+func NewLLMExtractor(client LLMClient) *LLMExtractor {
 	return &LLMExtractor{client: client}
 }
 

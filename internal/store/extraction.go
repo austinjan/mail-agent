@@ -83,8 +83,12 @@ SELECT
 FROM extraction_jobs j
 JOIN mails m ON m.id = j.mail_id
 LEFT JOIN attachments a ON a.id = j.attachment_id
-WHERE j.status = 'pending'
-ORDER BY j.updated_at ASC, j.id ASC
+WHERE j.status IN ('pending', 'failed')
+  AND j.attempts < 5
+ORDER BY
+	CASE j.status WHEN 'pending' THEN 0 ELSE 1 END,
+	j.updated_at ASC,
+	j.id ASC
 LIMIT ?
 `, limit)
 	if err != nil {
