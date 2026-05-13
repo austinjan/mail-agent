@@ -10,15 +10,14 @@ Tracking issues: [#1 讀取信件](https://github.com/austinjan/mail-agent/issue
 
 ## Status
 
-MVP read-mail implementation is complete through Task 11. The remaining Task
-12 is live Gmail/IMAP smoke-test acceptance, which requires real credentials
-and a mailbox with test messages. The full design and task breakdown live under
+MVP read-mail implementation and live Gmail/IMAP smoke-test acceptance are
+complete through Task 12. The full design and task breakdown live under
 [`docs/`](./docs):
 
 - [`docs/plans/2026-04-22-mvp-read-mail-design.md`](./docs/plans/2026-04-22-mvp-read-mail-design.md) — design, decisions, schema, architecture
 - [`docs/tasks/2026-04-22-mvp-read-mail/`](./docs/tasks/2026-04-22-mvp-read-mail/) — implementation task breakdown
 
-Current implementation includes config loading, mail data types, SQLite-backed
+The implementation includes config loading, mail data types, SQLite-backed
 deduplication and attachment storage, IMAP fetching with MIME parsing, the core
 fetch/dedup/persist pipeline, and the `mail-agent` CLI entrypoint.
 
