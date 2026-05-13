@@ -31,7 +31,7 @@ mail-agent extract enqueue --since=24h       # create extraction jobs
 mail-agent extract run --limit=20            # process pending extraction jobs with LLM
 mail-agent extract run --mode=rules          # local rule-based fallback
 mail-agent extract show --mail-id=123        # review extracted fields
-mail-agent extract export --out=fields.csv   # export extracted fields to CSV
+mail-agent extract export --out=fields.csv   # export TypeSearch CSV
 mail-agent version
 ```
 
@@ -59,6 +59,15 @@ variable instead of storing it in YAML:
 
 ```powershell
 $env:OPENAI_API_KEY="sk-..."
+```
+
+For compatibility with older local scripts, `Gkey` is also accepted as a
+fallback environment variable.
+
+The exported CSV follows the TypeSearch-oriented columns:
+
+```text
+Item, CMH, m, RPM, 黏度, 比重, SSVP管長, 機殼鑄造方式, 機型, 建議馬力, 額定馬力, 最大馬力, RPM_2, EFF, 直徑, 最大直徑, 流量%, 葉片角度, 備註
 ```
 
 ## Layout

@@ -19,4 +19,4 @@ mail-agent extract export --out=extracted_fields.csv
 - [x] 可列出指定 mail 的所有萃取欄位。
 - [x] 可看到 evidence 與來源附件檔名。
 - [x] 可由 extraction job 狀態追蹤 unsupported / failed 原因。
-- [x] 可匯出 CSV，供沒有 DB 工具時用 Excel 檢視。
+- [x] 可匯出 TypeSearch CSV，供沒有 DB 工具時用 Excel 檢視。

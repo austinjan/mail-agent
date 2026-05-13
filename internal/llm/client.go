@@ -33,7 +33,19 @@ type ExtractedField struct {
 }
 
 type extractionPayload struct {
-	Fields []ExtractedField `json:"fields"`
+	Items []pumpData `json:"items"`
+}
+
+type pumpData struct {
+	Item       int    `json:"Item"`
+	CMH        string `json:"CMH"`
+	M          string `json:"m"`
+	RPM        string `json:"RPM"`
+	Viscosity  string `json:"黏度"`
+	Gravity    string `json:"比重"`
+	SSVPLength string `json:"SSVP管長"`
+	Casting    string `json:"機殼鑄造方式"`
+	Evidence   string `json:"evidence_text"`
 }
 
 func NewClient(apiKey, model string) *Client {
@@ -68,11 +80,16 @@ func (c *Client) ExtractFields(ctx context.Context, text, sourceLabel string) ([
 			{
 				"role": "system",
 				"content": strings.Join([]string{
-					"You extract pump and procurement related fields from email or attachment text.",
-					"Return only fields that are explicitly supported by the provided text.",
-					"Do not guess. If a value is absent, omit it.",
-					"Each field must include concise evidence copied from the source text.",
-					"Common target fields include 流量, 揚程, 材質, 型號, 數量, 品牌, 用途, 備註, but other useful requested business fields are allowed.",
+					"你是一個專業的工程助理。請從提供的郵件或附件文字中，找出所有「離心幫浦選型需求」。",
+					"如果資料裡有多組需求，請輸出多個 items；如果沒有選型需求，items 請回空陣列。",
+					"只擷取這 8 個欄位：Item, CMH, m, RPM, 黏度, 比重, SSVP管長, 機殼鑄造方式。",
+					"CMH 是流量，可以包含單位，例如 120CMH 或 120 m3/h。",
+					"m 是揚程，絕對不要包含單位，只填純數字。",
+					"RPM 是轉速，絕對不要包含單位，只填純數字；若無請填空字串。",
+					"黏度、比重、SSVP管長都絕對不要包含單位，只填純數字；若無請填 0。",
+					"機殼鑄造方式是砂模鑄造、脫蠟鑄造等鑄造方式，不是材質或機型；若無請填空字串。",
+					"數字小數點後最多三位，不要用無意義的 0 結尾。",
+					"不要猜測。每個 item 都必須附 evidence_text，引用支撐該筆資料的原文。",
 				}, " "),
 			},
 			{
@@ -83,35 +100,39 @@ func (c *Client) ExtractFields(ctx context.Context, text, sourceLabel string) ([
 		"text": map[string]any{
 			"format": map[string]any{
 				"type":        "json_schema",
-				"name":        "mail_field_extraction",
-				"description": "Structured extraction results from mail or attachment text.",
+				"name":        "pump_selection_extraction",
+				"description": "Centrifugal pump selection requirements extracted from mail or attachment text.",
 				"strict":      true,
 				"schema": map[string]any{
 					"type":                 "object",
 					"additionalProperties": false,
-					"required":             []string{"fields"},
+					"required":             []string{"items"},
 					"properties": map[string]any{
-						"fields": map[string]any{
+						"items": map[string]any{
 							"type": "array",
 							"items": map[string]any{
 								"type":                 "object",
 								"additionalProperties": false,
 								"required": []string{
-									"field_name",
-									"field_value",
-									"unit",
-									"confidence",
+									"Item",
+									"CMH",
+									"m",
+									"RPM",
+									"黏度",
+									"比重",
+									"SSVP管長",
+									"機殼鑄造方式",
 									"evidence_text",
 								},
 								"properties": map[string]any{
-									"field_name":  map[string]any{"type": "string"},
-									"field_value": map[string]any{"type": "string"},
-									"unit":        map[string]any{"type": "string"},
-									"confidence": map[string]any{
-										"type":    "number",
-										"minimum": 0,
-										"maximum": 1,
-									},
+									"Item":          map[string]any{"type": "integer"},
+									"CMH":           map[string]any{"type": "string"},
+									"m":             map[string]any{"type": "string"},
+									"RPM":           map[string]any{"type": "string"},
+									"黏度":            map[string]any{"type": "string"},
+									"比重":            map[string]any{"type": "string"},
+									"SSVP管長":        map[string]any{"type": "string"},
+									"機殼鑄造方式":        map[string]any{"type": "string"},
 									"evidence_text": map[string]any{"type": "string"},
 								},
 							},
@@ -155,7 +176,46 @@ func (c *Client) ExtractFields(ctx context.Context, text, sourceLabel string) ([
 	if err := json.Unmarshal([]byte(out), &payload); err != nil {
 		return nil, fmt.Errorf("parse extraction JSON: %w: %s", err, out)
 	}
-	return payload.Fields, nil
+	return pumpDataToFields(payload.Items), nil
+}
+
+func pumpDataToFields(items []pumpData) []ExtractedField {
+	fields := make([]ExtractedField, 0, len(items)*8)
+	for idx, item := range items {
+		itemNo := item.Item
+		if itemNo <= 0 {
+			itemNo = idx + 1
+		}
+		evidence := strings.TrimSpace(item.Evidence)
+		add := func(name, value string) {
+			value = strings.TrimSpace(value)
+			if value == "" {
+				return
+			}
+			fields = append(fields, ExtractedField{
+				FieldName:    fmt.Sprintf("%d.%s", itemNo, name),
+				FieldValue:   value,
+				Confidence:   0.9,
+				EvidenceText: evidence,
+			})
+		}
+		add("Item", fmt.Sprintf("%d", itemNo))
+		add("CMH", item.CMH)
+		add("m", item.M)
+		add("RPM", item.RPM)
+		add("黏度", defaultZero(item.Viscosity))
+		add("比重", defaultZero(item.Gravity))
+		add("SSVP管長", defaultZero(item.SSVPLength))
+		add("機殼鑄造方式", item.Casting)
+	}
+	return fields
+}
+
+func defaultZero(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "0"
+	}
+	return s
 }
 
 func responseOutputText(data []byte) (string, error) {

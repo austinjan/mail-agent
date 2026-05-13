@@ -31,7 +31,7 @@ func TestExtractFieldsParsesStructuredResponse(t *testing.T) {
 				"output": [{
 					"content": [{
 						"type": "output_text",
-						"text": "{\"fields\":[{\"field_name\":\"流量\",\"field_value\":\"120\",\"unit\":\"m3/h\",\"confidence\":0.91,\"evidence_text\":\"Flow 120 m3/h\"}]}"
+						"text": "{\"items\":[{\"Item\":1,\"CMH\":\"120CMH\",\"m\":\"45\",\"RPM\":\"1750\",\"黏度\":\"0\",\"比重\":\"1\",\"SSVP管長\":\"0\",\"機殼鑄造方式\":\"砂模鑄造\",\"evidence_text\":\"Flow 120CMH Head 45m\"}]}"
 					}]
 				}]
 			}`)),
@@ -42,10 +42,14 @@ func TestExtractFieldsParsesStructuredResponse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExtractFields: %v", err)
 	}
-	if len(fields) != 1 {
-		t.Fatalf("fields: got %d want 1", len(fields))
+	if len(fields) == 0 {
+		t.Fatal("fields should not be empty")
 	}
-	if fields[0].FieldName != "流量" || fields[0].FieldValue != "120" || fields[0].Unit != "m3/h" {
-		t.Fatalf("unexpected field: %+v", fields[0])
+	got := map[string]string{}
+	for _, field := range fields {
+		got[field.FieldName] = field.FieldValue
+	}
+	if got["1.CMH"] != "120CMH" || got["1.m"] != "45" || got["1.機殼鑄造方式"] != "砂模鑄造" {
+		t.Fatalf("unexpected fields: %+v", got)
 	}
 }

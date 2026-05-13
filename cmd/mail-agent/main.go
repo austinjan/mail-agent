@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/austinjan/mail-agent/internal/config"
@@ -331,39 +332,11 @@ func writeExtractedFieldsCSV(path string, fields []store.ExtractedField) error {
 	}
 
 	w := csv.NewWriter(f)
-	if err := w.Write([]string{
-		"mail_id",
-		"job_id",
-		"attachment_id",
-		"field_name",
-		"field_value",
-		"unit",
-		"confidence",
-		"evidence_text",
-		"source_type",
-		"source_label",
-		"created_at",
-	}); err != nil {
+	if err := w.Write(typeSearchColumns()); err != nil {
 		return fmt.Errorf("write csv header: %w", err)
 	}
-	for _, field := range fields {
-		attachmentID := ""
-		if field.AttachmentID != nil {
-			attachmentID = strconv.FormatInt(*field.AttachmentID, 10)
-		}
-		if err := w.Write([]string{
-			strconv.FormatInt(field.MailID, 10),
-			strconv.FormatInt(field.JobID, 10),
-			attachmentID,
-			field.FieldName,
-			field.FieldValue,
-			field.Unit,
-			strconv.FormatFloat(field.Confidence, 'f', 2, 64),
-			field.EvidenceText,
-			field.SourceType,
-			field.SourceLabel,
-			field.CreatedAt.Format(time.RFC3339),
-		}); err != nil {
+	for _, row := range typeSearchRows(fields) {
+		if err := w.Write(row); err != nil {
 			return fmt.Errorf("write csv row: %w", err)
 		}
 	}
@@ -372,6 +345,96 @@ func writeExtractedFieldsCSV(path string, fields []store.ExtractedField) error {
 		return fmt.Errorf("flush csv: %w", err)
 	}
 	return nil
+}
+
+func typeSearchColumns() []string {
+	return []string{
+		"Item",
+		"CMH",
+		"m",
+		"RPM",
+		"黏度",
+		"比重",
+		"SSVP管長",
+		"機殼鑄造方式",
+		"機型",
+		"建議馬力",
+		"額定馬力",
+		"最大馬力",
+		"RPM_2",
+		"EFF",
+		"直徑",
+		"最大直徑",
+		"流量%",
+		"葉片角度",
+		"備註",
+	}
+}
+
+func typeSearchRows(fields []store.ExtractedField) [][]string {
+	rowMap := map[string]map[string]string{}
+	var order []string
+	for _, field := range fields {
+		item, name := splitItemField(field.FieldName)
+		if item == "" {
+			item = strconv.FormatInt(field.MailID, 10)
+		}
+		if _, ok := rowMap[item]; !ok {
+			rowMap[item] = map[string]string{"Item": item}
+			order = append(order, item)
+		}
+		name = typeSearchColumnName(name)
+		rowMap[item][name] = field.FieldValue
+		if field.EvidenceText != "" {
+			appendNote(rowMap[item], field.EvidenceText)
+		}
+	}
+
+	columns := typeSearchColumns()
+	rows := make([][]string, 0, len(order))
+	for idx, item := range order {
+		rowMap[item]["Item"] = strconv.Itoa(idx + 1)
+		row := make([]string, len(columns))
+		for i, column := range columns {
+			row[i] = rowMap[item][column]
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func typeSearchColumnName(name string) string {
+	switch name {
+	case "流量":
+		return "CMH"
+	case "揚程":
+		return "m"
+	default:
+		return name
+	}
+}
+
+func splitItemField(fieldName string) (string, string) {
+	item, name, ok := strings.Cut(fieldName, ".")
+	if !ok {
+		return "", fieldName
+	}
+	if item == "" || name == "" {
+		return "", fieldName
+	}
+	return item, name
+}
+
+func appendNote(row map[string]string, evidence string) {
+	evidence = strings.TrimSpace(evidence)
+	if evidence == "" || strings.Contains(row["備註"], evidence) {
+		return
+	}
+	if row["備註"] == "" {
+		row["備註"] = evidence
+		return
+	}
+	row["備註"] += " | " + evidence
 }
 
 func openConfiguredStore(cfgPath string, logger *slog.Logger) (*config.Config, *store.SqliteStore, bool) {
@@ -410,17 +473,29 @@ func configuredExtractor(mode string, cfg *config.Config, logger *slog.Logger) (
 		if apiKeyEnv == "" {
 			apiKeyEnv = "OPENAI_API_KEY"
 		}
-		apiKey := os.Getenv(apiKeyEnv)
+		apiKey, usedEnv := llmAPIKey(apiKeyEnv)
 		if apiKey == "" {
-			logger.Error("", "event", "openai_api_key_missing", "env", apiKeyEnv, "hint", "set the environment variable or run extract with --mode=rules")
+			logger.Error("", "event", "openai_api_key_missing", "env", apiKeyEnv, "fallback_envs", "OPENAI_API_KEY,Gkey", "hint", "set the environment variable or run extract with --mode=rules")
 			return nil, false
 		}
-		logger.Info("", "event", "extract_mode", "mode", "llm", "provider", provider, "model", model)
+		logger.Info("", "event", "extract_mode", "mode", "llm", "provider", provider, "model", model, "api_key_env", usedEnv)
 		return extract.NewLLMExtractor(llm.NewClient(apiKey, model)), true
 	default:
 		logger.Error("", "event", "extract_mode_invalid", "mode", mode, "hint", "use --mode=llm or --mode=rules")
 		return nil, false
 	}
+}
+
+func llmAPIKey(primaryEnv string) (string, string) {
+	for _, name := range []string{primaryEnv, "OPENAI_API_KEY", "Gkey"} {
+		if name == "" {
+			continue
+		}
+		if value := os.Getenv(name); value != "" {
+			return value, name
+		}
+	}
+	return "", ""
 }
 
 func versionString() string {

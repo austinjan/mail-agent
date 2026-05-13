@@ -30,5 +30,5 @@
 - `mail-agent extract run --limit=20` 預設使用 OpenAI LLM 處理 pending jobs，寫入 `extracted_fields`。
 - `mail-agent extract run --mode=rules --limit=20` 可使用本機規則備援。
 - `mail-agent extract show --mail-id=123` 會列出欄位、值、單位、confidence、evidence 與來源。
-- `mail-agent extract export --out=extracted_fields.csv` 會把萃取結果匯出成 Excel 友善的 UTF-8 CSV。
+- `mail-agent extract export --out=extracted_fields.csv` 會把萃取結果匯出成 Excel 友善的 TypeSearch CSV。
 - 不使用 OCR；圖片、掃描 PDF 或無文字層 PDF 會標為 `unsupported`。

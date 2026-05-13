@@ -22,9 +22,8 @@ func TestWriteExtractedFieldsCSV(t *testing.T) {
 		{
 			MailID:       1,
 			JobID:        2,
-			FieldName:    "流量",
-			FieldValue:   "120",
-			Unit:         "m3/h",
+			FieldName:    "1.CMH",
+			FieldValue:   "120CMH",
 			Confidence:   0.8,
 			EvidenceText: "Flow 120 m3/h",
 			SourceType:   "body",
@@ -43,7 +42,7 @@ func TestWriteExtractedFieldsCSV(t *testing.T) {
 	if !bytes.HasPrefix(data, []byte{0xEF, 0xBB, 0xBF}) {
 		t.Fatal("csv should start with UTF-8 BOM for Excel")
 	}
-	for _, want := range [][]byte{[]byte("field_name"), []byte("流量"), []byte("Flow 120 m3/h")} {
+	for _, want := range [][]byte{[]byte("Item,CMH,m,RPM"), []byte("120CMH"), []byte("Flow 120 m3/h")} {
 		if !bytes.Contains(data, want) {
 			t.Fatalf("csv missing %q:\n%s", want, data)
 		}

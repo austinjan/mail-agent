@@ -24,3 +24,4 @@
 - 預設使用 OpenAI LLM structured output 萃取欄位。
 - 本機規則保留為 `--mode=rules` 備援。
 - 欄位位置不固定時，交由 LLM 依整段文字與 evidence 判斷。
+- LLM 輸出依 TypeSearch 前 8 欄結構：`Item`、`CMH`、`m`、`RPM`、`黏度`、`比重`、`SSVP管長`、`機殼鑄造方式`。

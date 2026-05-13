@@ -92,19 +92,19 @@ fixed pump spec list.
 
 ## Field Scope
 
-Initial field targets:
+Initial structured TypeSearch targets:
 
-- `流量`
-- `揚程`
-- `材質`
-- `型號`
-- `數量`
-- `品牌`
-- `用途`
-- `備註`
+- `Item`
+- `CMH`
+- `m`
+- `RPM`
+- `黏度`
+- `比重`
+- `SSVP管長`
+- `機殼鑄造方式`
 
-The field list should be configurable later. T17 may start with a hard-coded
-default list to keep the first implementation small.
+The CSV export expands these into the full TypeSearch column set and leaves
+future/calculated columns blank until later tasks fill them.
 
 ## Attachment Support Order
 
