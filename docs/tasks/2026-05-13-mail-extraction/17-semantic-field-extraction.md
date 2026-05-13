@@ -21,5 +21,6 @@
 
 ## 目前策略
 
-- 第一版使用內建欄位規則與 evidence chunk，不使用外部 LLM。
-- 欄位位置不固定時，先用段落 / 表格文字 chunk 判斷候選值。
+- 預設使用 OpenAI LLM structured output 萃取欄位。
+- 本機規則保留為 `--mode=rules` 備援。
+- 欄位位置不固定時，交由 LLM 依整段文字與 evidence 判斷。

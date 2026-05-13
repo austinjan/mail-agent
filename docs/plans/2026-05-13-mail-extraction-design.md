@@ -1,7 +1,7 @@
 # Mail Extraction — Design
 
 - Date: 2026-05-13
-- Status: Implemented without OCR
+- Status: Implemented with LLM extraction, without OCR
 - Builds on: [MVP: Read Mail — Design](./2026-04-22-mvp-read-mail-design.md)
 
 ## Goal
@@ -83,8 +83,8 @@ fixed pump spec list.
    used.
 2. Chunk content by paragraph, table row, or page-like boundaries while keeping
    source labels.
-3. Ask semantic extraction to identify requested fields even when labels are
-   absent, translated, abbreviated, or far from values.
+3. Ask an LLM structured-output extractor to identify requested fields even
+   when labels are absent, translated, abbreviated, or far from values.
 4. Require each extracted value to include evidence text. Missing values are
    stored as no result rather than guessed.
 5. Persist extracted fields and job status so extraction can be retried without
@@ -139,4 +139,4 @@ mail-agent extract show --mail-id=123
 - Extraction schema exists after `OpenSQLite`.
 - Jobs can represent body and attachment work independently.
 - Extracted values include evidence and confidence.
-- OCR is not required and not invoked.
+- LLM extraction uses structured JSON output and does not invoke OCR.

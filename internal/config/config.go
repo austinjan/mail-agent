@@ -28,11 +28,18 @@ type AttachmentsConfig struct {
 	Dir string `yaml:"dir"`
 }
 
+type LLMConfig struct {
+	Provider  string `yaml:"provider"`
+	Model     string `yaml:"model"`
+	APIKeyEnv string `yaml:"api_key_env"`
+}
+
 type Config struct {
 	IMAP        IMAPConfig        `yaml:"imap"`
 	Defaults    DefaultsConfig    `yaml:"defaults"`
 	Database    DatabaseConfig    `yaml:"database"`
 	Attachments AttachmentsConfig `yaml:"attachments"`
+	LLM         LLMConfig         `yaml:"llm"`
 }
 
 func Load(path string) (*Config, error) {

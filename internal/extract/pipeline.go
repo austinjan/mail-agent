@@ -1,6 +1,7 @@
 package extract
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,8 +11,9 @@ import (
 )
 
 type Pipeline struct {
-	store  *store.SqliteStore
-	logger *slog.Logger
+	store     *store.SqliteStore
+	logger    *slog.Logger
+	extractor Extractor
 }
 
 type RunStats struct {
@@ -23,10 +25,17 @@ type RunStats struct {
 }
 
 func New(st *store.SqliteStore, logger *slog.Logger) *Pipeline {
+	return NewWithExtractor(st, logger, RuleExtractor{})
+}
+
+func NewWithExtractor(st *store.SqliteStore, logger *slog.Logger, extractor Extractor) *Pipeline {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Pipeline{store: st, logger: logger}
+	if extractor == nil {
+		extractor = RuleExtractor{}
+	}
+	return &Pipeline{store: st, logger: logger, extractor: extractor}
 }
 
 func (p *Pipeline) Run(limit int) (RunStats, error) {
@@ -58,7 +67,13 @@ func (p *Pipeline) Run(limit int) (RunStats, error) {
 			continue
 		}
 
-		fields := ExtractFields(text, job, label)
+		fields, err := p.extractor.Extract(context.Background(), text, job, label)
+		if err != nil {
+			stats.Failed++
+			_ = p.store.MarkExtractionJobFailed(job.ID, err.Error())
+			p.logger.Error("", "event", "extract_job_failed", "job_id", job.ID, "mail_id", job.MailID, "error", err.Error())
+			continue
+		}
 		if err := p.store.CompleteExtractionJob(job.ID, fields); err != nil {
 			stats.Failed++
 			p.logger.Error("", "event", "extract_job_complete_failed", "job_id", job.ID, "mail_id", job.MailID, "error", err.Error())

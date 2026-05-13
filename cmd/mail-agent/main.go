@@ -13,6 +13,7 @@ import (
 	"github.com/austinjan/mail-agent/internal/config"
 	"github.com/austinjan/mail-agent/internal/core"
 	"github.com/austinjan/mail-agent/internal/extract"
+	"github.com/austinjan/mail-agent/internal/llm"
 	"github.com/austinjan/mail-agent/internal/source"
 	"github.com/austinjan/mail-agent/internal/store"
 )
@@ -45,7 +46,7 @@ func usage() {
 Usage:
   mail-agent read --since=<duration> [--folder=INBOX] [--config=./config.yaml]
   mail-agent extract enqueue --since=<duration> [--config=./config.yaml]
-  mail-agent extract run [--limit=20] [--config=./config.yaml]
+  mail-agent extract run [--limit=20] [--mode=llm|rules] [--config=./config.yaml]
   mail-agent extract show --mail-id=<id> [--config=./config.yaml]
   mail-agent extract export --out=extracted_fields.csv [--mail-id=<id>] [--config=./config.yaml]
   mail-agent version
@@ -56,6 +57,7 @@ Examples:
   mail-agent read --since=2026-04-01T00:00:00Z --config=./config.yaml
   mail-agent extract enqueue --since=24h
   mail-agent extract run --limit=20
+  mail-agent extract run --mode=rules --limit=20
   mail-agent extract show --mail-id=1
   mail-agent extract export --out=extracted_fields.csv
 `)
@@ -154,7 +156,7 @@ func extractUsage() {
 
 Usage:
   mail-agent extract enqueue --since=<duration> [--config=./config.yaml]
-  mail-agent extract run [--limit=20] [--config=./config.yaml]
+  mail-agent extract run [--limit=20] [--mode=llm|rules] [--config=./config.yaml]
   mail-agent extract show --mail-id=<id> [--config=./config.yaml]
   mail-agent extract export --out=extracted_fields.csv [--mail-id=<id>] [--config=./config.yaml]
 `)
@@ -202,19 +204,24 @@ func runExtractRun(args []string) {
 	fs := flag.NewFlagSet("extract run", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	limit := fs.Int("limit", 20, "maximum pending jobs to process")
+	mode := fs.String("mode", "llm", "extractor mode: llm or rules")
 	cfgPath := fs.String("config", "config.yaml", "path to YAML config")
 	if err := fs.Parse(args); err != nil {
 		return
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	_, st, ok := openConfiguredStore(*cfgPath, logger)
+	cfg, st, ok := openConfiguredStore(*cfgPath, logger)
 	if !ok {
 		return
 	}
 	defer st.Close()
 
-	p := extract.New(st, logger)
+	extractor, ok := configuredExtractor(*mode, cfg, logger)
+	if !ok {
+		return
+	}
+	p := extract.NewWithExtractor(st, logger, extractor)
 	if _, err := p.Run(*limit); err != nil {
 		logger.Error("", "event", "extract_run_failed", "error", err.Error())
 	}
@@ -379,6 +386,41 @@ func openConfiguredStore(cfgPath string, logger *slog.Logger) (*config.Config, *
 		return nil, nil, false
 	}
 	return cfg, st, true
+}
+
+func configuredExtractor(mode string, cfg *config.Config, logger *slog.Logger) (extract.Extractor, bool) {
+	switch mode {
+	case "rules":
+		logger.Info("", "event", "extract_mode", "mode", "rules")
+		return extract.RuleExtractor{}, true
+	case "llm":
+		provider := cfg.LLM.Provider
+		if provider == "" {
+			provider = "openai"
+		}
+		if provider != "openai" {
+			logger.Error("", "event", "llm_provider_unsupported", "provider", provider)
+			return nil, false
+		}
+		model := cfg.LLM.Model
+		if model == "" {
+			model = "gpt-5-mini"
+		}
+		apiKeyEnv := cfg.LLM.APIKeyEnv
+		if apiKeyEnv == "" {
+			apiKeyEnv = "OPENAI_API_KEY"
+		}
+		apiKey := os.Getenv(apiKeyEnv)
+		if apiKey == "" {
+			logger.Error("", "event", "openai_api_key_missing", "env", apiKeyEnv, "hint", "set the environment variable or run extract with --mode=rules")
+			return nil, false
+		}
+		logger.Info("", "event", "extract_mode", "mode", "llm", "provider", provider, "model", model)
+		return extract.NewLLMExtractor(llm.NewClient(apiKey, model)), true
+	default:
+		logger.Error("", "event", "extract_mode_invalid", "mode", mode, "hint", "use --mode=llm or --mode=rules")
+		return nil, false
+	}
 }
 
 func versionString() string {

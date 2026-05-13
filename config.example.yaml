@@ -11,3 +11,7 @@ database:
   path: ./mail-agent.db
 attachments:
   dir: ./attachments
+llm:
+  provider: openai
+  model: gpt-5-mini
+  api_key_env: OPENAI_API_KEY   # set this environment variable; do not commit API keys

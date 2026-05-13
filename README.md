@@ -20,7 +20,7 @@ complete through Task 12. The full design and task breakdown live under
 The implementation includes config loading, mail data types, SQLite-backed
 deduplication and attachment storage, IMAP fetching with MIME parsing, the core
 fetch/dedup/persist pipeline, the `mail-agent` CLI entrypoint, and an OCR-free
-extraction pipeline for stored mail bodies and attachments.
+LLM extraction pipeline for stored mail bodies and attachments.
 
 ## Usage
 
@@ -28,7 +28,8 @@ extraction pipeline for stored mail bodies and attachments.
 mail-agent read --since=3d                   # primary command
 mail-agent read --since=3d --folder=INBOX    # override folder from config
 mail-agent extract enqueue --since=24h       # create extraction jobs
-mail-agent extract run --limit=20            # process pending extraction jobs
+mail-agent extract run --limit=20            # process pending extraction jobs with LLM
+mail-agent extract run --mode=rules          # local rule-based fallback
 mail-agent extract show --mail-id=123        # review extracted fields
 mail-agent extract export --out=fields.csv   # export extracted fields to CSV
 mail-agent version
@@ -52,6 +53,13 @@ A single `config.yaml` holds IMAP credentials and paths. `config.yaml` is
 git-ignored; [`config.example.yaml`](./config.example.yaml) ships as the
 template. Gmail requires an App Password (2FA -> app passwords), not the account
 login password. See the design doc for the full schema.
+
+LLM extraction uses OpenAI by default. Set the API key in an environment
+variable instead of storing it in YAML:
+
+```powershell
+$env:OPENAI_API_KEY="sk-..."
+```
 
 ## Layout
 
